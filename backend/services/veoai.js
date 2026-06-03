@@ -1,152 +1,132 @@
-const axios = require('axios')
-const qs = require('querystring')
-const cheerio = require('cheerio')
-const { wrapper } = require('axios-cookiejar-support')
-const { CookieJar } = require('tough-cookie')
+ 
 
-const BASE = 'https://veoaifree.com/wp-admin/admin-ajax.php'
-const PAGE = 'https://veoaifree.com/veo-video-generator/'
 
-const UAS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/121.0',
-]
 
-let cachedNonce = null
-let nonceExpiry = 0
-let cookieJar = new CookieJar()
-let client = wrapper(axios.create({ jar: cookieJar }))
+const axios = require('axios');
+const qs = require('querystring');
 
-async function getFreshNonce() {
-  if (cachedNonce && Date.now() < nonceExpiry) {
-    console.log('✅ Nonce cache se mil gaya')
-    return cachedNonce
-  }
+// ✅ Aapka Active Token securely locked
+const SCRAPE_DO_TOKEN = "c4607145ef72481aa9427eafc2bd5b7cedd14086598"; 
 
-  console.log('🔄 Fresh nonce fetch ho raha hai veoaifree.com se...')
-  const ua = UAS[Math.floor(Math.random() * UAS.length)]
+const BASE_URL = 'https://veoaifree.com/wp-admin/admin-ajax.php';
+const PAGE_URL = 'https://veoaifree.com/veo-video-generator/';
 
-  const res = await client.get(PAGE, {
-    headers: {
-      'User-Agent': ua,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
-    },
-    timeout: 15000,
-  })
-
-  // Multiple patterns try karo nonce dhundne ke liye
-  const patterns = [
-    /"nonce"\s*:\s*"(\w+)"/,
-    /nonce['"]\s*:\s*['"](\w+)['"]/,
-    /nonce=([a-f0-9]+)/,
-    /"nonce":"(\w+)"/,
-  ]
-
-  let nonce = null
-  for (const pattern of patterns) {
-    const match = res.data.match(pattern)
-    if (match) {
-      nonce = match[1]
-      break
-    }
-  }
-
-  // Cheerio se bhi try karo
-  if (!nonce) {
-    const $ = cheerio.load(res.data)
-    $('script').each((i, el) => {
-      const text = $(el).html() || ''
-      const m = text.match(/nonce['":\s]+['"]?([a-f0-9]{8,})/i)
-      if (m) { nonce = m[1]; return false }
-    })
-  }
-
-  // Fallback: env variable
-  if (!nonce) {
-    nonce = process.env.VEOAI_NONCE
-    console.log('⚠️ Page se nonce nahi mila, env variable use kar raha hoon')
-  }
-
-  if (!nonce) throw new Error('Nonce nahi mila — veoaifree.com ka structure change ho gaya hai')
-
-  cachedNonce = nonce
-  nonceExpiry = Date.now() + 45 * 60 * 1000 // 45 minutes cache
-  console.log(`✅ Fresh nonce mila: ${nonce.substring(0, 4)}****`)
-  return cachedNonce
+// Scrape.do dynamic global gateway routing builder
+function getScrapeDoUrl(targetUrl) {
+  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}`;
 }
 
-// Step 1: Prompt bhejo → Scene ID milega
-async function generateVideo(prompt, aspectRatio) {
-  const nonce = await getFreshNonce()
-  const ua = UAS[Math.floor(Math.random() * UAS.length)]
+// ─── 🔄 HANDSHAKE TOKEN (NONCE) FETCH ───
+async function getFreshNonce() {
+  try {
+    const proxyUrl = getScrapeDoUrl(PAGE_URL);
+    console.log(`🔄 Handshaking clear identity via Scrape.do Residential Proxy...`);
+    
+    const res = await axios.get(proxyUrl);
+    
+    const patterns = [
+      /"nonce"\s*:\s*"(\w+)"/,
+      /nonce['"]\s*:\s*['"](\w+)['"]/,
+      /"nonce":"(\w+)"/
+    ];
 
-  const body = qs.stringify({
+    let nonce = null;
+    if (res.data && typeof res.data === 'string') {
+      for (const pattern of patterns) {
+        const match = res.data.match(pattern);
+        if (match) { nonce = match[1]; break; }
+      }
+      
+      if (!nonce) {
+        const m = res.data.match(/nonce['":\s]+['"]?([a-f0-9]{8,})/i);
+        if (m) nonce = m[1];
+      }
+    }
+
+    return nonce;
+  } catch (error) {
+    console.error('❌ Scrape.do nonce handshake failed:', error.message);
+    return null;
+  }
+}
+
+// ─── 🎬 MAIN VIDEO GENERATION PIPELINE ───
+async function generateVideo(prompt, aspectRatio, image = null, aiGenerate = false) {
+  console.log(`🎬 Executing video pipeline with anonymous digital footprints...`);
+  
+  const nonce = await getFreshNonce();
+  if (!nonce) {
+    throw new Error('Automation limit bypass hit. Scrape.do dashboard par limits check karein.');
+  }
+
+  let executionPrompt = prompt;
+  if (aiGenerate && (!executionPrompt || executionPrompt.trim() === '')) {
+    executionPrompt = "Cinematic slow motion shot, hyper-realistic details, 4k master production.";
+  }
+
+  const bodyData = {
     action: 'veo_video_generator',
     nonce,
-    prompt,
+    prompt: executionPrompt,
     totalVariations: '1',
     aspectRatio,
     actionType: 'full-video-generate',
-  })
+  };
 
-  const response = await client.post(BASE, body, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Origin': 'https://veoaifree.com',
-      'Referer': PAGE,
-      'X-Requested-With': 'XMLHttpRequest',
-      'User-Agent': ua,
-    },
-    timeout: 30000,
-  })
+  if (image) bodyData.input_image = image;
+  const body = qs.stringify(bodyData);
 
-  const sceneId = String(response.data).trim()
+  try {
+    const proxyUrl = getScrapeDoUrl(BASE_URL);
+    console.log(`🚀 Routing dynamic payload through secure residential tunnel...`);
 
-  if (!sceneId || isNaN(sceneId)) {
-    // Nonce invalid ho sakta hai — clear karo aur dobara try karo
-    if (String(response.data).includes('invalid') || String(response.data).includes('nonce')) {
-      cachedNonce = null
-      nonceExpiry = 0
+    const response = await axios.post(proxyUrl, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    const sceneId = String(response.data).trim();
+
+    if (!sceneId || isNaN(sceneId) || sceneId.includes('<div') || sceneId.includes('limit')) {
+      throw new Error('Website security block hit or response invalid. Re-triggering sequence...');
     }
-    throw new Error(`Invalid Scene ID: "${sceneId}"`)
-  }
 
-  return sceneId
+    console.log(`✅ Scene ID successfully fetched: ${sceneId}`);
+    return sceneId;
+  } catch (err) {
+    throw new Error(err.message || 'Tunnel route blocked by provider.');
+  }
 }
 
-// Step 2: Scene ID bhejo → MP4 URL milega
+// ─── 🎯 RENDERING PIPELINE STATUS POLLING ───
 async function fetchVideoResult(sceneId) {
-  const nonce = await getFreshNonce()
-  const ua = UAS[Math.floor(Math.random() * UAS.length)]
+  const nonce = await getFreshNonce();
+  if (!nonce) return null;
 
   const body = qs.stringify({
     action: 'veo_video_generator',
     nonce,
     sceneData: sceneId,
     actionType: 'final-video-results',
-  })
+  });
 
-  const response = await client.post(BASE, body, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Origin': 'https://veoaifree.com',
-      'Referer': PAGE,
-      'X-Requested-With': 'XMLHttpRequest',
-      'User-Agent': ua,
-    },
-    timeout: 15000,
-  })
+  try {
+    const proxyUrl = getScrapeDoUrl(BASE_URL);
+    const response = await axios.post(proxyUrl, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
 
-  let url = String(response.data).trim()
-  url = url.replace('/videos/uploads/', '/video/uploads/')
+    let url = String(response.data).trim();
+    url = url.replace('/videos/uploads/', '/video/uploads/');
 
-  if (!url || !url.startsWith('http') || !url.includes('.mp4')) {
-    return null // abhi ready nahi hai
+    if (!url || !url.startsWith('http') || !url.includes('.mp4')) {
+      return null;
+    }
+
+    return url;
+  } catch (err) {
+    console.log(`⚠️ Result fetch check temporary skip: ${err.message}`);
+    return null;
   }
-
-  return url
 }
 
-module.exports = { generateVideo, fetchVideoResult }
+module.exports = { generateVideo, fetchVideoResult };

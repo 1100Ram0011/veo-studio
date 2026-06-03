@@ -1,3 +1,5 @@
+ 
+
 const express = require('express')
 const router = express.Router()
 const rateLimit = require('express-rate-limit')
@@ -14,13 +16,14 @@ const videoLimiter = rateLimit({
 // Prompt bhejo, Scene ID wapas milega
 router.post('/generate', videoLimiter, async (req, res) => {
   try {
-    const { prompt, aspectRatio } = req.body
+    const { prompt, aspectRatio, image, aiGenerate } = req.body
 
-    if (!prompt || prompt.trim().length === 0) {
-      return res.status(400).json({ error: 'Prompt required hai' })
+    // UPDATED VALIDATION: Agar prompt khali hai, aur na hi image hai, aur na hi AI mode select kiya hai
+    if ((!prompt || prompt.trim().length === 0) && !image && !aiGenerate) {
+      return res.status(400).json({ error: 'Prompt, Image upload ya AI mode select karna required hai!' })
     }
 
-    if (prompt.length > 500) {
+    if (prompt && prompt.length > 100000) {
       return res.status(400).json({ error: 'Prompt 500 characters se zyada nahi ho sakta' })
     }
 
@@ -34,9 +37,11 @@ router.post('/generate', videoLimiter, async (req, res) => {
       ? aspectRatio
       : 'VIDEO_ASPECT_RATIO_PORTRAIT'
 
-    console.log(`🎬 Generating video for prompt: "${prompt.substring(0, 50)}…"`)
+    const finalPrompt = prompt ? prompt.trim() : '';
+    console.log(`🎬 Generating video sequence... Mode: AI=${!!aiGenerate}, Image=${!!image}`)
 
-    const sceneId = await generateVideo(prompt.trim(), aspect)
+    // UPDATED CALL: Ab hum prompt ke saath optional image aur aiGenerate instructions bhi bhej rahe hain
+    const sceneId = await generateVideo(finalPrompt, aspect, image, aiGenerate)
 
     console.log(`✅ Scene ID: ${sceneId}`)
 
@@ -56,6 +61,7 @@ router.post('/generate', videoLimiter, async (req, res) => {
 
 // ─── POST /api/video/result ──────────────────────────────
 // Scene ID bhejo, MP4 URL wapas milega (agar ready hai)
+// ─── POST /api/video/result ──────────────────────────────
 router.post('/result', async (req, res) => {
   try {
     const { sceneId } = req.body
@@ -64,19 +70,25 @@ router.post('/result', async (req, res) => {
       return res.status(400).json({ error: 'sceneId required hai' })
     }
 
-    const videoUrl = await fetchVideoResult(sceneId)
+    // Try catch lagayein taaki timeout hone par poora app ya request crash na ho
+    try {
+      const videoUrl = await fetchVideoResult(sceneId)
 
-    if (videoUrl) {
-      console.log(`🎉 Video ready: ${videoUrl}`)
-      res.json({ success: true, videoUrl, ready: true })
-    } else {
-      res.json({ success: true, videoUrl: null, ready: false, message: 'Abhi generate ho rahi hai…' })
+      if (videoUrl) {
+        console.log(`🎉 Video ready: ${videoUrl}`)
+        return res.json({ success: true, videoUrl, ready: true })
+      } else {
+        return res.json({ success: true, videoUrl: null, ready: false, message: 'Abhi generate ho rahi hai…' })
+      }
+    } catch (axiosError) {
+      // Agar veoaifree.com timeout marta hai ya network slow hota hai
+      console.log(`⚠️ VeoAI Server is taking too long for Scene: ${sceneId}. Retrying in next poll...`)
+      return res.json({ success: true, videoUrl: null, ready: false, message: 'Server slow hai, video process ho rahi hai, please wait...' })
     }
 
   } catch (error) {
-    console.error('❌ Result fetch error:', error.message)
+    console.error('❌ Result fetch major error:', error.message)
     res.status(500).json({ error: error.message })
   }
 })
-
 module.exports = router

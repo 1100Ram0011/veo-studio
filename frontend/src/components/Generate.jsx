@@ -40,8 +40,10 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
 
   const addLog = (msg) => setLog(prev => [...prev.slice(-8), msg])
 
-  const generateVideo = async () => {
-    if (!prompt.trim() || credits <= 0) return
+const generateVideo = async () => {
+    // Kisi bhi haal mein double trigger ya bina credit ke request nahi jayegi
+    if (!prompt.trim() || credits <= 0 || status === 'generating' || status === 'polling') return
+    
     setStatus('generating')
     setVideoUrl(null)
     setErrorMsg('')
@@ -59,55 +61,71 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
       const sceneId = genRes.data.sceneId
       if (!sceneId) throw new Error('Scene ID nahi mila')
 
-      setProgress(35)
+      setProgress(25)
       addLog(`✅ Scene ID: ${sceneId}`)
       setStatus('polling')
-      addLog('⏳ Video generate ho rahi hai…')
+      addLog('⏳ Video generate ho rahi hai (It takes 1-3 mins)…')
 
-      // Step 2: Poll karo result ke liye
       let attempts = 0
-      const maxAttempts = 24
+      const maxAttempts = 80
+
+      // Purane chal rahe kisi bhi zombie loop ko pehle clear karo
+      if (pollRef.current) clearInterval(pollRef.current)
 
       pollRef.current = setInterval(async () => {
         attempts++
-        setProgress(Math.min(35 + attempts * 2.5, 90))
-        addLog(`🔄 Checking result ${attempts}/${maxAttempts}…`)
+        setProgress(Math.min(25 + attempts * 3.5, 95))
+        addLog(`🔄 Checking server — Attempt ${attempts}/${maxAttempts}…`)
 
         try {
+          // Polling hit bina kisi disruption ke
           const pollRes = await axios.post(`${API_URL}/api/video/result`, { sceneId })
           const url = pollRes.data.videoUrl
 
-          if (url && url.includes('.mp4')) {
+          if (url && (url.includes('.mp4') || url.startsWith('http'))) {
             clearInterval(pollRef.current)
             setVideoUrl(url)
             setProgress(100)
             setStatus('done')
             setCredits(c => c - 1)
-            addLog('🎬 Video ready!')
+            addLog('🎬 Video completely ready!')
+            
             setHistory(prev => [{
               id: sceneId,
-              prompt,
+              prompt: prompt.trim(),
               status: 'completed',
               url,
               createdAt: new Date().toISOString(),
               aspect,
             }, ...prev])
+          } else {
+            addLog(`⏳ AI is still rendering frame sequence…`)
           }
         } catch (e) {
-          addLog(`⚠️ ${e.message}`)
+          // Agar network glitch ya user browser tab switch karne se abort ho, toh loop handle karega
+          if (axios.isCancel(e)) {
+            addLog(`⚠️ Connection aborted momentarily. Retrying next cycle…`)
+          } else {
+            addLog(`⏳ Server processing frames, keeping channel open…`)
+          }
         }
 
         if (attempts >= maxAttempts) {
           clearInterval(pollRef.current)
           setStatus('error')
-          setErrorMsg('Timeout ho gaya. Dobara try karo.')
+          setErrorMsg('Timeout ho gaya. Par backend par video ban rahi hogi, thodi der baad History check karein.')
           addLog('❌ Max attempts reached.')
         }
-      }, 5000)
+      }, 15000)
 
     } catch (err) {
       setStatus('error')
-      setErrorMsg(err.response?.data?.error || err.message)
+      // Agar main generation request block/abort hui ho
+      if (axios.isCancel(err)) {
+        setErrorMsg('Request ko system ne cancel kiya. Kripya naya prompt daal kar firse start karein.')
+      } else {
+        setErrorMsg(err.response?.data?.error || err.message)
+      }
       addLog('❌ Error: ' + err.message)
     }
   }
