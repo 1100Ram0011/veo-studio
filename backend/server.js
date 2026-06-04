@@ -53,7 +53,7 @@
 
 const express = require('express')
 const cors = require('cors')
-const helmet = require('helmet')
+ 
 const morgan = require('morgan')
 const mongoose = require('mongoose')
 require('dotenv').config()
@@ -61,7 +61,7 @@ require('dotenv').config()
 const app = express()
 
 // ─── Security & Logging ────────────────────────────────────────────────────
-app.use(helmet())
+ 
 app.use(morgan('combined'))
 
 // ─── CORS ──────────────────────────────────────────────────────────────────
@@ -71,19 +71,24 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean)
 
+// app.use(cors({
+//   origin: (origin, callback) => {
+//     // Allow requests with no origin (mobile apps, curl, Postman)
+//     if (!origin) return callback(null, true)
+//      if (origin.endsWith('.vercel.app')) return callback(null, true)
+//     if (allowedOrigins.includes(origin)) return callback(null, true)
+//     callback(new Error(`CORS policy: Origin ${origin} not allowed`))
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }))
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true)
-     if (origin.endsWith('.vercel.app')) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
-    callback(new Error(`CORS policy: Origin ${origin} not allowed`))
-  },
+  origin: true, // Yeh har us domain ko automatic allow kar dega jahan se request aa rahi hai
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
-
 // ─── Body Parsers ──────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
