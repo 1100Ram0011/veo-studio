@@ -508,7 +508,7 @@ export default function App() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {[1, 2, 3, 4, 5].map(n => (
                           <button key={n} onClick={() => setNumParts(n)} style={{
-                            width: 44, height: 44, borderRadius: 10, border: "none", cursor: "pointer",
+                            width: 44, height: 44, borderRadius: 10, cursor: "pointer",
                             background: numParts === n ? "#f59e0b" : "#030812",
                             border: numParts === n ? "none" : "1px solid #1a2744",
                             color: numParts === n ? "#000" : "#64748b",
@@ -551,7 +551,7 @@ export default function App() {
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {LANGUAGES.map(l => (
                           <button key={l} onClick={() => setLanguage(l)} style={{
-                            padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                            padding: "6px 14px", borderRadius: 8,   cursor: "pointer",
                             background: language === l ? "rgba(96,165,250,0.15)" : "#030812",
                             border: language === l ? "1px solid rgba(96,165,250,0.4)" : "1px solid #1a2744",
                             color: language === l ? "#60a5fa" : "#475569",
