@@ -67,7 +67,7 @@ app.use(morgan('combined'))
 // ─── CORS ──────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:3000',
+  'https://veo-studio-kdhhx1buc-1100ram0011s-projects.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean)
 
