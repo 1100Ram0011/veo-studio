@@ -508,12 +508,15 @@ export default function App() {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {[1, 2, 3, 4, 5].map(n => (
                           <button key={n} onClick={() => setNumParts(n)} style={{
-                            width: 44, height: 44, borderRadius: 10, cursor: "pointer",
-                            background: numParts === n ? "#f59e0b" : "#030812",
-                            border: numParts === n ? "none" : "1px solid #1a2744",
-                            color: numParts === n ? "#000" : "#64748b",
-                            fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 800,
-                            transition: "all 0.15s",
+                            // Is tarah se badal lijiye (Line 554 se border hata diya)
+                            padding: "6px 14px", 
+                            borderRadius: 8, 
+                            cursor: "pointer",
+                            background: language === l ? "rgba(96,165,250,0.15)" : "#030812",
+                            border: language === l ? "1px solid rgba(96,165,250,0.4)" : "1px solid #1a2744",
+                            color: language === l ? "#60a5fa" : "#475569",
+                            fontSize: 12, 
+                            fontWeight: language === l ? 700 : 500,
                           }}>{n}</button>
                         ))}
                       </div>
