@@ -506,19 +506,19 @@ export default function App() {
                     <div style={{ marginBottom: 18 }}>
                       <p style={{ color: "#64748b", fontSize: 12, marginBottom: 10, fontWeight: 600 }}>Number of Parts</p>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {[1, 2, 3, 4, 5].map(n => (
-                          <button key={n} onClick={() => setNumParts(n)} style={{
-                            // Is tarah se badal lijiye (Line 554 se border hata diya)
-                            padding: "6px 14px", 
-                            borderRadius: 8, 
-                            cursor: "pointer",
-                            background: language === l ? "rgba(96,165,250,0.15)" : "#030812",
-                            border: language === l ? "1px solid rgba(96,165,250,0.4)" : "1px solid #1a2744",
-                            color: language === l ? "#60a5fa" : "#475569",
-                            fontSize: 12, 
-                            fontWeight: language === l ? 700 : 500,
-                          }}>{n}</button>
-                        ))}
+                        {/* ✅ Sahi Code: Isko apne ScriptGenerator.jsx mein badal lijiye */}
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button key={n} onClick={() => setNumParts(n)} style={{
+                              padding: "6px 14px", 
+                              borderRadius: 8, 
+                              cursor: "pointer",
+                              background: numParts === n ? "rgba(245,158,11,0.15)" : "#030812",
+                              border: numParts === n ? "1px solid rgba(245,158,11,0.4)" : "1px solid #1a2744",
+                              color: numParts === n ? "#f59e0b" : "#475569",
+                              fontSize: 12, 
+                              fontWeight: numParts === n ? 700 : 500,
+                            }}>{n}</button>
+                          ))}
                       </div>
                       <p style={{ color: "#1e3a5f", fontSize: 11, marginTop: 8 }}>
                         {numParts} part{numParts !== 1 ? "s" : ""} = {numParts} chapters/scenes
