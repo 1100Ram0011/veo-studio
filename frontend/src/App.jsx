@@ -412,7 +412,7 @@ export default function App() {
 
         {/* Main */}
         <main className="app-main" key={tab}>
-          {tab === 'script'    && <ScriptGenerator />}
+        // {tab === 'script'    && <ScriptGenerator />}
           {tab === 'generate'  && <Generate history={history} setHistory={setHistory} credits={credits} setCredits={setCredits} />}
           {tab === 'history'   && <History history={history} />}
           {tab === 'analytics' && <Analytics history={history} />}
