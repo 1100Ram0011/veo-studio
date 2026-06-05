@@ -105,7 +105,7 @@ import Plans from './components/Plans'
 import ScriptGenerator from './components/ScriptGenerator'
 
 const TABS = [
-  { id: 'script',    label: 'Script',    icon: '✍' },
+  //{ id: 'script',    label: 'Script',    icon: '✍' },
   { id: 'generate',  label: 'Generate',  icon: '⚡' },
   { id: 'history',   label: 'History',   icon: '⊞' },
   { id: 'analytics', label: 'Analytics', icon: '↗' },
@@ -412,7 +412,7 @@ export default function App() {
 
         {/* Main */}
         <main className="app-main" key={tab}>
-        // {tab === 'script'    && <ScriptGenerator />}
+          {tab === 'script'    && <ScriptGenerator />}
           {tab === 'generate'  && <Generate history={history} setHistory={setHistory} credits={credits} setCredits={setCredits} />}
           {tab === 'history'   && <History history={history} />}
           {tab === 'analytics' && <Analytics history={history} />}
