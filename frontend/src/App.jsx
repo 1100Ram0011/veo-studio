@@ -112,6 +112,7 @@ const TABS = [
   { id: 'plans',     label: 'Plans',     icon: '◈' },
 ]
 
+// ✅ Sahi Code: Isko apne App.jsx mein appStyles wale variable se replace karein
 const appStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
@@ -139,6 +140,7 @@ const appStyles = `
     min-height: 100vh;
     background: #050a12;
     position: relative;
+    overflow-x: hidden;
   }
 
   /* Ambient background blobs */
@@ -168,8 +170,8 @@ const appStyles = `
   .app-header {
     position: sticky;
     top: 0;
-    z-index: 100;
-    background: rgba(5,10,18,0.88);
+    z-index: 1000;
+    background: rgba(5,10,18,0.9);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid #0f1c2e;
@@ -218,12 +220,20 @@ const appStyles = `
 
   .logo-text span { color: #38bdf8; }
 
-  /* Nav */
+  /* Nav Container Box */
+  .mobile-nav-scroll {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    max-width: 600px;
+  }
+
   .app-nav {
     display: flex;
     align-items: center;
-    gap: 2px;
-    background: rgba(15,28,46,0.5);
+    gap: 4px;
+    background: rgba(15,28,46,0.4);
     border: 1px solid #0f1c2e;
     border-radius: 14px;
     padding: 5px;
@@ -233,14 +243,14 @@ const appStyles = `
     display: flex;
     align-items: center;
     gap: 7px;
-    padding: 8px 14px;
+    padding: 8px 16px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
     font-family: 'Outfit', sans-serif;
     font-size: 13.5px;
     font-weight: 500;
-    color: #3a5068;
+    color: #64748b;
     background: transparent;
     transition: all 0.18s;
     white-space: nowrap;
@@ -321,44 +331,80 @@ const appStyles = `
 
   .avatar:hover { border-color: rgba(56,189,248,0.5); }
 
-  /* Main content */
+  /* Main content layout stack lock */
   .app-main {
     max-width: 1140px;
     margin: 0 auto;
     padding: 44px 24px 80px;
     position: relative;
-    z-index: 1;
+    z-index: 10;
     animation: fadeSlide 0.3s ease;
   }
 
-  /* Mobile nav toggle */
-  .mobile-nav-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .mobile-nav-scroll::-webkit-scrollbar { display: none; }
-
+  /* 🔥 MOBILE VIEW OVERHAUL (Aapki Problem Ka Solution) 🔥 */
   @media (max-width: 768px) {
-    .app-header { padding: 0 16px; }
-    .header-inner { height: 58px; }
-    .logo-text { font-size: 16px; }
-    .app-nav { background: none; border: none; padding: 0; gap: 2px; }
-    .nav-btn { padding: 6px 10px; font-size: 12px; }
-    .nav-btn .nav-label { display: none; }
-    .nav-icon { font-size: 17px; }
-    .nav-btn { border-radius: 10px; border: 1px solid transparent; }
-    .nav-btn.active { border-color: #1a2f48; }
+    .app-header { padding: 0 12px; }
+    .header-inner { height: 64px; gap: 8px; }
+    
+    .mobile-nav-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      justify-content: flex-start;
+      padding: 6px 0;
+      max-width: 100%;
+    }
+    .mobile-nav-scroll::-webkit-scrollbar { display: none; }
+
+    /* Nav container ko pill-shaped border aur background diya */
+    .app-nav { 
+      background: #0b1524; 
+      border: 1px solid #16263f; 
+      padding: 4px; 
+      border-radius: 12px;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Buttons ko bada kiya aur distinct border diya */
+    .nav-btn { 
+      padding: 8px 14px; 
+      font-size: 13px; 
+      border-radius: 8px;
+      background: #070d16;
+      border: 1px solid #101d30;
+      color: #748ba7;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-btn .nav-label { display: inline-block; } /* Text vapas on kiya taaki pata chale kaunsa button hai */
+    .nav-icon { font-size: 14px; }
+    
+    /* Active button par solid neon border aur glow background background */
+    .nav-btn.active { 
+      background: #0ea5e9;
+      color: #050a12;
+      font-weight: 700;
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(14,165,233,0.4);
+    }
+
+    .nav-btn:hover {
+      background: #0d1f35;
+      color: #38bdf8;
+    }
+    
     .credit-badge .credit-label { display: none; }
-    .app-main { padding: 28px 16px 60px; }
+    .credit-badge { padding: 8px; border-radius: 50%; }
+    .app-main { padding: 20px 12px 60px; }
     .logo-mark { width: 32px; height: 32px; font-size: 15px; }
   }
 
   @media (max-width: 520px) {
     .logo-text { display: none; }
-    .header-inner { gap: 8px; }
   }
-`
+`;
 
 export default function App() {
   const [tab, setTab] = useState('script')
