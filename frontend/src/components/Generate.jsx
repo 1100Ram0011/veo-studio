@@ -175,21 +175,31 @@ const generateVideo = async () => {
       {/* Aspect Ratio */}
       <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 16, padding: 20, marginBottom: 24 }}>
         <label style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 14 }}>Aspect Ratio</label>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {ASPECT_RATIOS.map(r => (
-            <button key={r.value} onClick={() => setAspect(r.value)} style={{
-              flex: 1, padding: '12px 8px', borderRadius: 10, cursor: 'pointer',
-              border: aspect === r.value ? '2px solid #f59e0b' : '1px solid #1e293b',
-              background: aspect === r.value ? 'rgba(245,158,11,0.1)' : '#020817',
-              color: aspect === r.value ? '#f59e0b' : '#64748b',
-              fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600,
-              transition: 'all 0.2s',
-            }}>
-              <div style={{ fontSize: 22, marginBottom: 4 }}>{r.icon}</div>
-              {r.label}
-            </button>
-          ))}
-        </div>
+        {/* ✅ Sahi Code: Isko apne Generate.jsx mein aspect ratio section se replace karein */}
+<div style={{ display: "flex", gap: 12 }}>
+  {ASPECT_RATIOS.map(r => (
+    <button 
+      key={r.value} 
+      onClick={() => setAspect(r.value)} 
+      style={{
+        flex: 1, 
+        padding: '12px 8px', 
+        borderRadius: 10, 
+        cursor: 'pointer',
+        border: aspect === r.value ? '2px solid #f59e0b' : '1px solid #1e293b',
+        background: aspect === r.value ? 'rgba(245,158,11,0.1)' : '#020817',
+        color: aspect === r.value ? '#f59e0b' : '#64748b',
+        fontFamily: "'DM Sans', sans-serif", 
+        fontSize: 13, 
+        fontWeight: 600,
+        transition: 'all 0.2s',
+      }}
+    >
+      <div style={{ fontSize: 22, marginBottom: 4 }}>{r.icon}</div>
+      {r.label}
+    </button>
+  ))}
+</div>
       </div>
 
       {/* Generate / Cancel Button */}
@@ -241,9 +251,9 @@ const generateVideo = async () => {
             }} />
           </div>
           <div style={{ marginTop: 14, background: '#020817', borderRadius: 10, padding: '10px 14px', maxHeight: 130, overflow: 'auto' }}>
-            {log.map((l, i) => (
-              <div key={i} style={{ color: '#475569', fontSize: 12, fontFamily: 'monospace', marginBottom: 3 }}>{l}</div>
-            ))}
+              {log.map((logItem, i) => (
+    <div key={i} style={{ color: '#475569', fontSize: 12, fontFamily: 'monospace', marginBottom: 3 }}>{logItem}</div>
+  ))}
           </div>
         </div>
       )}
