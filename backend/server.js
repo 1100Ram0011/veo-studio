@@ -59,6 +59,7 @@ const mongoose = require('mongoose')
 require('dotenv').config() // Load env vars
 
 const app = express()
+app.set('trust proxy', 1) // Tells Express it's behind a proxy (like Render) so req.get('host') works
 
 // ─── Security & Logging ────────────────────────────────────────────────────
  
