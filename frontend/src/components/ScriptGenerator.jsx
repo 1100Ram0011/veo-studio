@@ -545,7 +545,7 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
           setErrorMsg('Request timed out. Video may still be generating — check History in a few minutes.')
           addLog('Max attempts reached.')
         }
-      }, 30000)
+      }, 60000)
     } catch (err) {
       setStatus('error')
       if (axios.isCancel(err)) setErrorMsg('Request was cancelled. Please try again with a new prompt.')
