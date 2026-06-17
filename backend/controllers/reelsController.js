@@ -35,6 +35,10 @@ exports.getReelsResult = async (req, res, next) => {
 
     const videoUrl = await fetchVideoResult(sceneId.trim())
 
+    if (videoUrl === 'FAILED') {
+      return res.json({ success: true, ready: false, failed: true, message: 'Provider rejected or failed generation.' })
+    }
+
     if (videoUrl) {
       const Media = require('../models/Media')
       const mediaId = 'reels_' + sceneId.trim()
@@ -48,6 +52,7 @@ exports.getReelsResult = async (req, res, next) => {
         },
         { upsert: true, new: true }
       )
+
       const baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://veo-studio-jk43.onrender.com' : 'http://localhost:5000');
       const proxyUrl = `${baseUrl}/api/media/proxy/${mediaId}`;
       return res.json({ success: true, ready: true, videoUrl: proxyUrl })
