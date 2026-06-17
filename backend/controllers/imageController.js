@@ -23,7 +23,8 @@ exports.generateImage = async (req, res) => {
       sizeBytes: 1500000 // approx 1.5MB for this unsplash image
     });
 
-    const proxyUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/media/proxy/${imageId}`;
+    const baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://veo-studio-jk43.onrender.com' : 'http://localhost:5000');
+    const proxyUrl = `${baseUrl}/api/media/proxy/${imageId}`;
 
     return res.status(200).json({
       success: true,
