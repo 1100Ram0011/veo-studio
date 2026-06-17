@@ -247,7 +247,7 @@ export default function ReelsGenerator({ history, setHistory, credits, setCredit
           setErrorMsg('Timed out. Check History tab in a few minutes.')
           addLog('Max attempts reached.')
         }
-      }, 60000)
+      }, 90000)
 
     } catch (err) {
       setStatus('error')
