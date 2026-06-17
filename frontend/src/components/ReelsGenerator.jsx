@@ -227,8 +227,15 @@ export default function ReelsGenerator({ history, setHistory, credits, setCredit
               url: pollRes.data.videoUrl, createdAt: new Date().toISOString(),
               aspect: 'VIDEO_ASPECT_RATIO_PORTRAIT',
             }, ...prev])
+          } else if (pollRes.data.failed) {
+            if (!pollRef.current) return;
+            clearInterval(pollRef.current)
+            pollRef.current = null
+            setStatus('error')
+            setErrorMsg('AI Engine rejected the prompt or failed to generate. Please try a different prompt.')
+            addLog('Provider returned a generation failure.')
           } else {
-            addLog('Still rendering portrait frames...')
+            addLog('AI is composing scenes…')
           }
         } catch {
           addLog('Server busy, retrying...')
