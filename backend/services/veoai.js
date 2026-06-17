@@ -6,14 +6,14 @@ const axios = require('axios');
 const qs = require('querystring');
 
 // ✅ Aapka Active Token securely locked via env
-const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN || "c4607145ef72481aa9427eafc2bd5b7cedd14086598";
+const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN || "4182420bba99461b8bb840c21e6f40dedfa29545d07";
 
 const BASE_URL = 'https://veoaifree.com/wp-admin/admin-ajax.php';
 const PAGE_URL = 'https://veoaifree.com/veo-video-generator/';
 
 // Scrape.do dynamic global gateway routing builder
 function getScrapeDoUrl(targetUrl) {
-  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}`;
+  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&super=true`;
 }
 
 let cachedNonce = null;
@@ -129,7 +129,9 @@ async function fetchVideoResult(sceneId) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    let url = String(response.data).trim();
+    let url = typeof response.data === 'string' ? response.data.trim() : JSON.stringify(response.data);
+    console.log(`[DEBUG POLL] SceneID: ${sceneId} | Response:`, url.substring(0, 500));
+    
     url = url.replace('/videos/uploads/', '/video/uploads/');
 
     if (!url || !url.startsWith('http') || !url.includes('.mp4')) {
