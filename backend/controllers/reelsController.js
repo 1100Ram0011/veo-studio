@@ -48,8 +48,8 @@ exports.getReelsResult = async (req, res, next) => {
         },
         { upsert: true, new: true }
       )
-
-      const proxyUrl = `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/media/proxy/${mediaId}`
+      const baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://veo-studio-jk43.onrender.com' : 'http://localhost:5000');
+      const proxyUrl = `${baseUrl}/api/media/proxy/${mediaId}`;
       return res.json({ success: true, ready: true, videoUrl: proxyUrl })
     }
     return res.json({ success: true, ready: false, message: 'Reel asset is rendering...' })
