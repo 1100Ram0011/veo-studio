@@ -161,12 +161,16 @@ if (process.env.MONGO_URI) {
 }
 
 // ─── Graceful Shutdown ─────────────────────────────────────────────────────
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully…')
-  mongoose.connection.close(() => {
+  try {
+    await mongoose.connection.close()
     console.log('MongoDB connection closed')
     process.exit(0)
-  })
+  } catch(err) {
+    console.error('Error closing MongoDB connection:', err)
+    process.exit(1)
+  }
 })
 
 process.on('uncaughtException', (err) => {
