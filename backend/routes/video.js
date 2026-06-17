@@ -120,6 +120,10 @@ router.post('/result', resultLimiter, resultValidation, async (req, res) => {
   try {
     const videoUrl = await fetchVideoResult(sceneId.trim())
 
+    if (videoUrl === 'FAILED') {
+      return res.json({ success: true, ready: false, failed: true, message: 'Provider rejected or failed generation.' })
+    }
+
     if (videoUrl) {
       console.log(`🎉 Video ready for scene ${sceneId}: ${videoUrl}`)
       
