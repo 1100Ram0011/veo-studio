@@ -536,6 +536,13 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
               id: sceneId, prompt: prompt.trim(), status: 'completed',
               url, createdAt: new Date().toISOString(), aspect,
             }, ...prev])
+          } else if (pollRes.data.failed) {
+            if (!pollRef.current) return;
+            clearInterval(pollRef.current)
+            pollRef.current = null
+            setStatus('error')
+            setErrorMsg('AI Engine rejected the prompt or failed to generate. Please try a different prompt.')
+            addLog('Provider returned a generation failure.')
           } else {
             addLog('AI is still rendering frames…')
           }
