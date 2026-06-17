@@ -13,7 +13,7 @@ const PAGE_URL = 'https://veoaifree.com/veo-video-generator/';
 
 // Scrape.do dynamic global gateway routing builder
 function getScrapeDoUrl(targetUrl) {
-  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}`;
+  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&super=true`;
 }
 
 let cachedNonce = null;
