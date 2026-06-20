@@ -23,6 +23,12 @@ exports.generateReels = async (req, res, next) => {
     })
   } catch (err) {
     console.error('❌ Reels engine process failed:', err.message)
+    if (err.message === 'PROVIDER_LIMIT_REACHED') {
+      return res.status(429).json({ error: 'Free engine limit reached (Max 2 videos per IP). Please wait or use a VPN/Proxy.' })
+    }
+    if (err.message === 'SCRAPE_DO_LIMIT') {
+      return res.status(402).json({ error: 'Scrape.do API key limit exceeded. Please upgrade your Scrape.do plan.' })
+    }
     return res.status(502).json({ error: 'Reels automation pipeline failed. Check limits.' })
   }
 }
