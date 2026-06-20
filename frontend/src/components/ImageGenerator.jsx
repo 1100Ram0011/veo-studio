@@ -305,6 +305,26 @@ export default function ImageGenerator({ credits, setCredits }) {
   const ratio = RATIOS.find(r => r.label === activeRatio)
   
   // Custom text representation adjustments matching App.jsx credits hook parameters
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `veo-ai-image-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed', err);
+      // Fallback
+      window.open(imageUrl, '_blank');
+    }
+  };
+
   const creditsTextDisplay = typeof credits === 'string' ? credits : `${credits} left`;
 
   return (
@@ -433,9 +453,9 @@ export default function ImageGenerator({ credits, setCredits }) {
                 Image Ready
               </div>
               <div className="ig-result-actions">
-                <a href={imageUrl} download="ai-image.png" target="_blank" rel="noreferrer" className="ig-download-btn">
+                <button onClick={handleDownload} className="ig-download-btn" style={{ border: 'none', cursor: 'pointer' }}>
                   ↓ Download
-                </a>
+                </button>
                 <button className="ig-regen-btn" onClick={generate} disabled={loading}>
                   ↺ Regenerate
                 </button>
