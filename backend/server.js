@@ -103,6 +103,7 @@ app.use('/api/voice', require('./routes/voice'))   // NEW: Voice synthesis frame
 app.use('/api/image', require('./routes/image'))   // NEW: Art generator engine routing layer
 app.use('/api/payment', require('./routes/payment')) // NEW PAYMENT SUITE ROUTE
 app.use('/api/media', require('./routes/media'))     // NEW: Media proxy route
+app.use('/api/script', require('./routes/script'))
 
 // ─── DB Cleanup Job ────────────────────────────────────────────────────────
 const { startCleanupJob } = require('./services/dbCleanupJob');
