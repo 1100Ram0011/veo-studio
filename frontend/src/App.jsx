@@ -9,8 +9,10 @@ import History from './components/History'
 import Analytics from './components/Analytics'
 import Plans from './components/Plans'
 import AuthModal from './components/AuthModal'
+import ScriptGenerator from './components/ScriptGenerator'
 const TABS = [
   { id: 'generate',  label: 'Master Video', icon: '🎬' },
+  { id: 'script',    label: 'AI Prompt',    icon: '✨' },
   { id: 'reels',     label: 'Insta Reels',  icon: '📱' },
   { id: 'voice',     label: 'AI Voice',     icon: '🎙️' },
   { id: 'image',     label: 'Image Gen',    icon: '🖼️' },
@@ -512,10 +514,12 @@ export default function App() {
           </div>
         </header>
 
-        {/* ── MAIN CONTENT ── */}
         <main className="app-main">
           <div style={{ display: tab === 'generate' ? 'block' : 'none' }}>
             <Generate history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
+          </div>
+          <div style={{ display: tab === 'script' ? 'block' : 'none' }}>
+            <ScriptGenerator credits={creditsNum} setCredits={handleUsageAccounting} />
           </div>
           <div style={{ display: tab === 'reels' ? 'block' : 'none' }}>
             <ReelsGenerator history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
