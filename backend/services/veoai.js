@@ -1,20 +1,19 @@
- 
-
-
-
 const axios = require('axios');
 const qs = require('querystring');
+const { wrapper } = require('axios-cookiejar-support');
+const { CookieJar } = require('tough-cookie');
 
-// ✅ Aapka Active Token securely locked via env
-const SCRAPE_DO_TOKEN = process.env.SCRAPE_DO_TOKEN || "4182420bba99461b8bb840c21e6f40dedfa29545d07";
+const jar = new CookieJar();
+const client = wrapper(axios.create({ jar }));
 
 const BASE_URL = 'https://veoaifree.com/wp-admin/admin-ajax.php';
 const PAGE_URL = 'https://veoaifree.com/veo-video-generator/';
 
-// Scrape.do dynamic global gateway routing builder
-function getScrapeDoUrl(targetUrl) {
-  return `http://api.scrape.do?token=${SCRAPE_DO_TOKEN}&url=${encodeURIComponent(targetUrl)}&super=true`;
-}
+const COMMON_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+};
 
 let cachedNonce = null;
 let nonceTimestamp = 0;
@@ -28,10 +27,9 @@ async function getFreshNonce() {
   }
 
   try {
-    const proxyUrl = getScrapeDoUrl(PAGE_URL);
-    console.log(`🔄 Handshaking clear identity via Scrape.do Residential Proxy...`);
+    console.log(`🔄 Handshaking clear identity via DIRECT connection (No Scrape.do tokens used)...`);
     
-    const res = await axios.get(proxyUrl);
+    const res = await client.get(PAGE_URL, { headers: COMMON_HEADERS });
     
     const patterns = [
       /"nonce"\s*:\s*"(\w+)"/,
@@ -59,18 +57,18 @@ async function getFreshNonce() {
 
     return nonce;
   } catch (error) {
-    console.error('❌ Scrape.do nonce handshake failed:', error.message);
+    console.error('❌ Direct nonce handshake failed:', error.message);
     return null;
   }
 }
 
 // ─── 🎬 MAIN VIDEO GENERATION PIPELINE ───
 async function generateVideo(prompt, aspectRatio, image = null, aiGenerate = false) {
-  console.log(`🎬 Executing video pipeline with anonymous digital footprints...`);
+  console.log(`🎬 Executing video pipeline directly...`);
   
   const nonce = await getFreshNonce();
   if (!nonce) {
-    throw new Error('Automation limit bypass hit. Scrape.do dashboard par limits check karein.');
+    throw new Error('Automation limit bypass hit. Website blocked the direct request.');
   }
 
   let executionPrompt = prompt;
@@ -91,11 +89,14 @@ async function generateVideo(prompt, aspectRatio, image = null, aiGenerate = fal
   const body = qs.stringify(bodyData);
 
   try {
-    const proxyUrl = getScrapeDoUrl(BASE_URL);
-    console.log(`🚀 Routing dynamic payload through secure residential tunnel...`);
+    console.log(`🚀 Routing dynamic payload directly...`);
 
-    const response = await axios.post(proxyUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const response = await client.post(BASE_URL, body, {
+      headers: { 
+        ...COMMON_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': PAGE_URL
+      }
     });
 
     const sceneId = String(response.data).trim();
@@ -107,7 +108,7 @@ async function generateVideo(prompt, aspectRatio, image = null, aiGenerate = fal
     console.log(`✅ Scene ID successfully fetched: ${sceneId}`);
     return sceneId;
   } catch (err) {
-    throw new Error(err.message || 'Tunnel route blocked by provider.');
+    throw new Error(err.message || 'Direct route blocked by provider.');
   }
 }
 
@@ -124,9 +125,12 @@ async function fetchVideoResult(sceneId) {
   });
 
   try {
-    const proxyUrl = getScrapeDoUrl(BASE_URL);
-    const response = await axios.post(proxyUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const response = await client.post(BASE_URL, body, {
+      headers: { 
+        ...COMMON_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': PAGE_URL
+      }
     });
 
     let url = typeof response.data === 'string' ? response.data.trim() : JSON.stringify(response.data);
