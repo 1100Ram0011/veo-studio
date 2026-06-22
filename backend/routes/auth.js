@@ -59,6 +59,12 @@ router.post('/register', registerValidation, async (req, res) => {
       isUnlimited: false
     })
 
+    try {
+      await User.collection.dropIndex('username_1');
+    } catch (ignore) {
+      // Index might not exist, ignore
+    }
+
     await user.save()
 
     const token = createToken(user.id)
