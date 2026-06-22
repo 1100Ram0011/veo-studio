@@ -2,66 +2,19 @@ import { useState } from 'react';
 import axios from 'axios';
 import API_URL from '../config';
 
-const modalStyles = `
-  .auth-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(3,7,18,0.98);
-    backdrop-filter: blur(24px);
-    z-index: 999999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .auth-card {
-    max-width: 400px;
-    width: 100%;
-    background: #0b1520;
-    border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 20px;
-    padding: 30px;
-    color: #e2eaf6;
-    font-family: 'Outfit', sans-serif;
-  }
-  .auth-input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    border: 1px solid #1a2535;
-    background: #050a12;
-    color: #fff;
-  }
-  .auth-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
-    color: #fff;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
-  }
-  .toggle-auth {
-    margin-top: 15px;
-    text-align: center;
-    font-size: 13px;
-    color: #7dd3fc;
-    cursor: pointer;
-  }
-`;
-
 export default function AuthModal({ onAuthSuccess, onClose }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
+    
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
     const payload = isLogin ? { email, password } : { name, email, password };
     
@@ -73,60 +26,98 @@ export default function AuthModal({ onAuthSuccess, onClose }) {
         onAuthSuccess(res.data.user);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed');
+      setError(err.response?.data?.error || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      <style>{modalStyles}</style>
-      <div className="auth-overlay">
-        <div className="auth-card">
-          <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>
-            {isLogin ? 'Login to Continue' : 'Create an Account'}
+    <div 
+      className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-xl z-[999999] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-[420px] bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-sky-500/20 rounded-3xl p-8 sm:p-10 text-slate-900 dark:text-slate-200 shadow-[0_24px_64px_rgba(0,0,0,0.1)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.6)] relative overflow-hidden animate-[modalFadeIn_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Background glow */}
+        <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] hidden dark:block bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_60%)] pointer-events-none z-0" />
+
+        {onClose && (
+          <button 
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 dark:text-slate-500 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 dark:hover:text-slate-900 dark:text-white flex items-center justify-center transition-all z-10"
+            onClick={onClose} 
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        )}
+
+        <div className="text-center mb-8 relative z-10">
+          <h2 className="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-indigo-300 bg-clip-text text-transparent">
+            {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
-          {error && <div style={{ color: '#ef4444', marginBottom: '10px', textAlign: 'center' }}>{error}</div>}
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
-              <input
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="auth-input"
-                required
-              />
-            )}
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="auth-input"
-              required
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="auth-input"
-              required
-            />
-            <button type="submit" className="auth-btn">
-              {isLogin ? 'Login' : 'Sign Up'}
-            </button>
-          </form>
-          <div className="toggle-auth" onClick={() => setIsLogin(!isLogin)}>
-            {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Login'}
+          <p className="text-sm text-slate-500 dark:text-slate-500">
+            {isLogin ? 'Sign in to continue generating masterpieces' : 'Join VeoStudio and unlock premium generation'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm text-center mb-5 relative z-10 flex items-center justify-center gap-2">
+            <span>⚠️</span> {error}
           </div>
-          {onClose && (
-            <div style={{ marginTop: '15px', textAlign: 'center', cursor: 'pointer', color: '#64748b' }} onClick={onClose}>
-              Cancel
-            </div>
+        )}
+
+        <form className="relative z-10 flex flex-col gap-4" onSubmit={handleSubmit}>
+          {!isLogin && (
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="input-field border-slate-200 bg-slate-50 focus:bg-white dark:border-slate-800 dark:bg-slate-900/50"
+              required
+            />
           )}
+          
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="input-field border-slate-200 bg-slate-50 focus:bg-white dark:border-slate-800 dark:bg-slate-900/50"
+            required
+          />
+          
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="input-field border-slate-200 bg-slate-50 focus:bg-white dark:border-slate-800 dark:bg-slate-900/50"
+            required
+          />
+          
+          <button type="submit" className="btn-primary mt-2 flex items-center justify-center gap-2" disabled={loading}>
+            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (isLogin ? 'Sign In' : 'Create Account')}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-500 relative z-10">
+          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+          <span 
+            className="text-blue-600 dark:text-sky-400 font-semibold cursor-pointer hover:text-blue-500 dark:hover:text-sky-300 transition-colors"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+            }}
+          >
+            {isLogin ? 'Sign up' : 'Log in'}
+          </span>
         </div>
       </div>
-    </>
+    </div>
   );
 }
+ 
