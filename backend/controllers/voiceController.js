@@ -11,14 +11,17 @@ exports.generateVoice = async (req, res, next) => {
 
     const audioId = 'audio_' + Math.floor(100000 + Math.random() * 900000);
     
-    // Map Frontend voices to StreamElements voices
-    let ttsVoice = 'Brian'; // Default Adam
-    if (voiceModel?.includes('Rachel')) ttsVoice = 'Amy';
-    if (voiceModel?.includes('Josh')) ttsVoice = 'Justin';
-    if (voiceModel?.includes('Bella')) ttsVoice = 'Salli';
+    // Map Frontend voices to Google Translate Accents
+    let langCode = 'en-US'; 
+    if (voiceModel?.includes('Rachel')) langCode = 'en-GB';
+    if (voiceModel?.includes('Josh')) langCode = 'en-AU';
+    if (voiceModel?.includes('Bella')) langCode = 'en-IN';
+    if (voiceModel?.includes('Liam')) langCode = 'en-IE';
+    if (voiceModel?.includes('Sophia')) langCode = 'en-ZA';
+    if (voiceModel?.includes('Noah')) langCode = 'en-NZ';
 
-    // Construct the public URL for the TTS service
-    const originalUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${ttsVoice}&text=${encodeURIComponent(text.trim())}`;
+    // Construct the public URL for the Google TTS service
+    const originalUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${encodeURIComponent(text.trim())}`;
 
     // Optionally save in DB to track usage
     try {
@@ -27,17 +30,22 @@ exports.generateVoice = async (req, res, next) => {
           id: audioId,
           type: 'voice',
           originalUrl: originalUrl,
-          sizeBytes: 500000
+          sizeBytes: 500000,
+          userId: req.user ? req.user.id : null,
+          prompt: text.trim()
         });
       }
     } catch (e) {
       console.log('Voice DB save skipped', e.message);
     }
 
+    const baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://veo-studio-jk43.onrender.com' : 'http://localhost:5000');
+    const proxyUrl = `${baseUrl}/api/media/proxy/${audioId}`;
+
     return res.status(200).json({
       success: true,
       audioId,
-      audio_url: originalUrl,
+      audio_url: proxyUrl,
       message: 'Voice generated successfully'
     });
   } catch (err) {
