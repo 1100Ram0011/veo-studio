@@ -5,156 +5,74 @@ import API_URL from '../config'
 const PLANS = [
   {
     id: 'Free',
-    name: 'Starter',
+    name: 'STARTER',
     price: '₹0',
-    period: 'forever',
-    credits: 5,
-    color: '#3a5068',
-    accent: '#4a7a9b',
+    period: 'Forever',
+    creditsBox: '5 daily credits',
+    icon: '★',
+    color: 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800',
+    iconColor: 'bg-[#8b5cf6]/20 text-[#a855f7]',
+    buttonText: 'Free Forever',
+    buttonColor: 'bg-slate-50 dark:bg-[#121826] hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800',
     features: [
-      '5 Video Credits',
-      'Standard Rendering',
-      '9:16 Portrait Mode',
-      'Script Generator',
-      'Community Support',
+      { text: '5 Video Credits', active: true },
+      { text: '2 Audio Credits', active: true },
+      { text: '5 AI Voice Credits', active: true },
+      { text: '10 Image Generations', active: true },
+      { text: 'Basic Features', active: true },
+      { text: 'Community Support', active: false },
     ],
   },
   {
     id: 'Pro',
-    name: 'Pro',
+    name: 'PRO',
     price: '₹10',
-    period: 'one-time',
-    credits: 50,
-    color: '#38bdf8',
-    accent: '#0ea5e9',
-    badge: 'Most Popular',
+    period: '/month\nBilled monthly',
+    creditsBox: '50 monthly credits',
+    icon: '🔥',
+    badge: 'POPULAR',
+    color: 'bg-white dark:bg-[#0b101d] border-[#1e40af] shadow-[0_0_30px_rgba(30,64,175,0.2)]',
+    iconColor: 'bg-[#3b82f6]/20 text-[#60a5fa]',
+    badgeColor: 'bg-[#3b82f6] text-white',
+    buttonText: 'Buy for ₹10',
+    buttonColor: 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] hover:opacity-90 text-white',
     features: [
-      '50 Video Credits',
-      'Priority Rendering',
-      'All Aspect Ratios',
-      'Image Generator',
-      'Voice Generator',
-      'Email Support',
+      { text: '50 Video Credits', active: true },
+      { text: '25 Audio Credits', active: true },
+      { text: '20 AI Voice Credits', active: true },
+      { text: 'Image Generator', active: true },
+      { text: 'All AI Features', active: true },
+      { text: 'Priority Processing', active: true },
+      { text: 'Email Support', active: true },
     ],
   },
   {
     id: 'Enterprise',
-    name: 'Enterprise',
+    name: 'ENTERPRISE',
     price: '₹499',
-    period: 'one-time',
-    credits: 200,
-    color: '#a855f7',
-    accent: '#7c3aed',
-    badge: 'Best Value',
+    period: '/month\nBilled monthly',
+    creditsBox: '2000 monthly credits',
+    icon: '👑',
+    badge: 'BEST VALUE',
+    color: 'bg-white dark:bg-[#0b101d] border-[#6b21a8]',
+    iconColor: 'bg-[#8b5cf6]/20 text-[#c084fc]',
+    badgeColor: 'bg-[#8b5cf6] text-white',
+    buttonText: 'Buy for ₹499',
+    buttonColor: 'bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] hover:opacity-90 text-white',
     features: [
-      '200 Video Credits',
-      'Ultra HD Output',
-      'Commercial Rights',
-      'All Pro Features',
-      'Reels Generator',
-      'Priority Support',
+      { text: '2000 Video Credits', active: true },
+      { text: 'Unlimited Audio Credits', active: true },
+      { text: 'Unlimited AI Voice Credits', active: true },
+      { text: 'Advanced AI Models', active: true },
+      { text: 'Commercial Rights', active: true },
+      { text: 'Priority Processing', active: true },
+      { text: '24/7 VIP Support', active: true },
     ],
   },
 ]
 
-const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
-  @keyframes pl-fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
-  @keyframes pl-fadeIn { from{opacity:0} to{opacity:1} }
-  @keyframes pl-pulse  { 0%,100%{opacity:1} 50%{opacity:.4} }
-  @keyframes pl-spin   { to{transform:rotate(360deg)} }
-  @keyframes pl-modalIn { from{opacity:0;transform:scale(0.95) translateY(10px)} to{opacity:1;transform:none} }
-
-  .pl-root { font-family:'Outfit',sans-serif; max-width:900px; margin:0 auto; animation:pl-fadeUp 0.3s ease; color:#e2eaf6; }
-
-  /* Header */
-  .pl-header { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:10px; }
-  .pl-title { font-size:30px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg,#e2eaf6 0%,#7dd3fc 60%,#38bdf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1.15; }
-  .pl-subtitle { font-size:14px; color:#4a5f7a; margin-top:6px; }
-
-  .pl-active-badge { display:flex; align-items:center; gap:7px; padding:7px 16px; border-radius:100px; border:1px solid rgba(56,189,248,0.25); background:rgba(56,189,248,0.06); font-size:13px; font-weight:600; color:#7dd3fc; flex-shrink:0; }
-  .pl-active-dot { width:6px; height:6px; border-radius:50%; background:#38bdf8; box-shadow:0 0 7px #38bdf8; animation:pl-pulse 2s ease infinite; }
-
-  /* Plans grid */
-  .pl-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; }
-
-  .pl-card {
-    background:#0b1520; border-radius:20px; padding:24px;
-    display:flex; flex-direction:column; justify-content:space-between;
-    position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s;
-    border:1px solid #1a2535;
-  }
-  .pl-card:hover { transform:translateY(-3px); }
-  .pl-card.active { border-width:1.5px; }
-  .pl-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; opacity:0.7; }
-
-  .pl-badge { position:absolute; top:16px; right:16px; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:3px 10px; border-radius:100px; }
-
-  .pl-plan-name { font-size:13px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:6px; }
-  .pl-price { font-size:36px; font-weight:800; font-family:'Space Mono',monospace; letter-spacing:-1px; line-height:1.1; margin-bottom:4px; }
-  .pl-period { font-size:11px; color:#2e4255; font-family:'Space Mono',monospace; margin-bottom:20px; }
-  .pl-credits { display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; margin-bottom:18px; }
-  .pl-credits-num { font-size:18px; font-weight:800; font-family:'Space Mono',monospace; }
-  .pl-credits-lbl { font-size:12px; color:#3a5068; font-weight:500; }
-
-  .pl-features { list-style:none; padding:0; margin:0 0 22px; flex:1; }
-  .pl-feature { display:flex; align-items:center; gap:10px; font-size:13px; color:#3a5068; padding:5px 0; border-bottom:1px solid #0f1c2e; }
-  .pl-feature:last-child { border-bottom:none; }
-  .pl-feature.active-feat { color:#8ca9c4; }
-  .pl-check { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; flex-shrink:0; }
-
-  .pl-btn {
-    width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer;
-    font-family:'Outfit',sans-serif; font-size:14px; font-weight:800;
-    letter-spacing:0.3px; transition:all 0.22s; display:flex;
-    align-items:center; justify-content:center; gap:8px;
-  }
-  .pl-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
-  .pl-btn.current { background:#0f1c2e; color:#2e4255; cursor:default; }
-  .pl-btn.buy { color:#fff; }
-  .pl-btn.buy:hover { transform:translateY(-1px); }
-
-  /* Modal overlay */
-  .pl-overlay { position:fixed; inset:0; background:rgba(2,5,12,0.88); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; animation:pl-fadeIn 0.2s ease; }
-
-  .pl-modal { background:#0b1520; border-radius:22px; padding:28px; max-width:360px; width:100%; text-align:center; position:relative; animation:pl-modalIn 0.3s ease; border:1px solid rgba(56,189,248,0.2); }
-  .pl-modal::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,#38bdf8,transparent); border-radius:22px 22px 0 0; }
-
-  .pl-modal-title { font-size:18px; font-weight:800; color:#e2eaf6; margin-bottom:4px; }
-  .pl-modal-sub { font-size:12.5px; color:#2e4255; margin-bottom:20px; }
-
-  .pl-qr-wrap { background:#fff; padding:12px; border-radius:14px; display:inline-block; box-shadow:0 4px 24px rgba(0,0,0,0.5); margin-bottom:18px; }
-  .pl-qr-img { display:block; width:220px; height:220px; }
-
-  .pl-amount-row { margin-bottom:6px; }
-  .pl-amount-label { font-size:12px; color:#2e4255; margin-bottom:4px; }
-  .pl-amount-value { font-size:28px; font-weight:800; color:#4ade80; font-family:'Space Mono',monospace; }
-  .pl-ref { font-size:10px; color:#1e3048; font-family:'Space Mono',monospace; margin-top:4px; margin-bottom:20px; }
-
-  .pl-verify-btn { width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer; font-family:'Outfit',sans-serif; font-size:14px; font-weight:800; margin-bottom:10px; background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff; box-shadow:0 3px 14px rgba(14,165,233,0.3); transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .pl-verify-btn:hover { transform:translateY(-1px); box-shadow:0 5px 20px rgba(14,165,233,0.45); }
-  .pl-verify-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
-
-  .pl-close-btn { width:100%; padding:11px; border-radius:12px; border:1px solid #1a2535; background:transparent; color:#3a5068; cursor:pointer; font-family:'Outfit',sans-serif; font-size:13px; font-weight:600; transition:all 0.2s; }
-  .pl-close-btn:hover { border-color:#243650; color:#7dd3fc; }
-
-  .pl-spinner { width:15px; height:15px; border:2px solid rgba(255,255,255,0.25); border-top-color:#fff; border-radius:50%; animation:pl-spin 0.8s linear infinite; }
-
-  /* Success toast */
-  .pl-toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:#0b1520; border:1px solid rgba(74,222,128,0.3); border-radius:14px; padding:14px 24px; display:flex; align-items:center; gap:10px; z-index:10000; animation:pl-fadeUp 0.3s ease; box-shadow:0 8px 32px rgba(0,0,0,0.5); white-space:nowrap; }
-
-  @media(max-width:700px) {
-    .pl-grid { grid-template-columns:1fr; }
-    .pl-card { padding:20px; }
-    .pl-title { font-size:24px; }
-  }
-`
-
-const getQRUrl = (upiPayload) =>
-  `https://chart.googleapis.com/chart?cht=qr&chs=280x280&chl=${encodeURIComponent(upiPayload)}`
-
 export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEmail }) {
-  const [loading, setLoading] = useState(null) // which plan is loading
+  const [loading, setLoading] = useState(null)
   const [toast, setToast] = useState(null)
 
   const showToast = (msg) => {
@@ -165,7 +83,6 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
   const handleBuy = async (plan) => {
     if (plan.id === 'Free' || plan.id === currentPlan) return
     
-    // Fallback email if userEmail is not passed in props
     const emailToUse = userEmail || localStorage.getItem('userEmail') || 'user@veostudio.com'
 
     setLoading(plan.id)
@@ -176,7 +93,6 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
       })
       
       if (res.data.success && res.data.payment_session_id) {
-        // Dynamic import to avoid SSR issues if this was Next.js, but safe here anyway
         const { load } = await import('@cashfreepayments/cashfree-js')
         const cashfree = await load({ mode: 'production' })
 
@@ -190,11 +106,10 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
             showToast('❌ Payment failed or cancelled.')
             setLoading(null)
           }
-          if (result.redirect) {
-            // Payment is done
-          }
           if (result.paymentDetails) {
-            verifyPayment(res.data.order_id, plan.id, emailToUse, plan.credits)
+            // Assume 50 credits for Pro, 2000 for Enterprise based on UI
+            const creditsToAdd = plan.id === 'Pro' ? 50 : 2000;
+            verifyPayment(res.data.order_id, plan.id, emailToUse, creditsToAdd)
           }
         })
       }
@@ -226,100 +141,191 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
   }
 
   return (
-    <>
-      <style>{css}</style>
-      <div className="pl-root">
+    <div className="w-full max-w-[1200px] mx-auto animate-[fadeSlide_0.3s_ease] text-slate-800 dark:text-slate-200">
 
-        {/* Header */}
-        <div className="pl-header">
-          <div>
-            <h1 className="pl-title">Plans & Pricing</h1>
-            <p className="pl-subtitle">Top up your credits with a one-time purchase — no subscriptions</p>
-          </div>
-          <div className="pl-active-badge">
-            <span className="pl-active-dot" />
-            {currentPlan} Plan
-          </div>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
+            Plans & Pricing
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Choose the perfect plan to unlock the power of VeoStudio AI</p>
         </div>
+        <button className="flex items-center gap-2 px-4 py-2 bg-[#1e1b4b]/50 border border-[#8b5cf6]/30 dark:border-[#8b5cf6]/30 text-[#c084fc] rounded-xl text-xs font-bold transition-colors">
+          <span>✨</span> Save up to 40%
+        </button>
+      </div>
 
-        {/* Plans grid */}
-        <div className="pl-grid">
-          {PLANS.map(plan => {
-            const isActive = currentPlan === plan.id
-            return (
-              <div
-                key={plan.id}
-                className={`pl-card ${isActive ? 'active' : ''}`}
-                style={{
-                  borderColor: isActive ? plan.color : '#1a2535',
-                  boxShadow: isActive ? `0 0 30px ${plan.color}18` : 'none',
-                }}
-              >
-                {/* Top color line */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${plan.color}, transparent)`, opacity: isActive ? 0.9 : 0.3 }} />
-
-                {/* Popular badge */}
-                {plan.badge && (
-                  <div className="pl-badge" style={{ background: `${plan.color}18`, color: plan.color, border: `1px solid ${plan.color}40` }}>
-                    {plan.badge}
-                  </div>
-                )}
-
-                <div>
-                  {/* Plan name */}
-                  <div className="pl-plan-name" style={{ color: plan.color }}>{plan.name}</div>
-
-                  {/* Price */}
-                  <div className="pl-price" style={{ color: '#e2eaf6' }}>{plan.price}</div>
-                  <div className="pl-period">{plan.period}</div>
-
-                  {/* Credits chip */}
-                  <div className="pl-credits" style={{ background: `${plan.color}0f`, border: `1px solid ${plan.color}28` }}>
-                    <span className="pl-credits-num" style={{ color: plan.color }}>{plan.credits}</span>
-                    <span className="pl-credits-lbl">video credits</span>
-                  </div>
-
-                  {/* Features */}
-                  <ul className="pl-features">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className={`pl-feature ${isActive ? 'active-feat' : ''}`}>
-                        <div className="pl-check" style={{ background: `${plan.color}18`, color: plan.color }}>✓</div>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
+      {/* Pricing Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {PLANS.map(plan => {
+          const isPro = plan.id === 'Pro';
+          return (
+            <div
+              key={plan.id}
+              className={`relative flex flex-col bg-white dark:bg-[#0b101d] border ${isPro ? 'border-[#1e40af] shadow-[0_0_30px_rgba(30,64,175,0.2)]' : 'border-slate-200 dark:border-slate-800/80'} rounded-[24px] p-6 lg:p-8 transition-all duration-300`}
+            >
+              {/* Badge */}
+              {plan.badge && (
+                <div className={`absolute -top-3 right-6 px-3 py-1 text-[10px] font-bold rounded-lg ${plan.badgeColor}`}>
+                  {plan.badge}
                 </div>
+              )}
 
-                {/* Button */}
-                <button
-                  className={`pl-btn ${isActive ? 'current' : 'buy'}`}
-                  style={!isActive ? {
-                    background: `linear-gradient(135deg, ${plan.accent}, ${plan.color})`,
-                    boxShadow: `0 4px 18px ${plan.color}30`,
-                  } : {}}
-                  onClick={() => handleBuy(plan)}
-                  disabled={isActive || loading === plan.id}
-                >
-                  {loading === plan.id
-                    ? <><div className="pl-spinner" /> Processing…</>
-                    : isActive
-                      ? '✓ Current Plan'
-                      : plan.id === 'Free' ? 'Free Forever' : `Buy for ${plan.price}`
-                  }
-                </button>
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className={`text-xs font-black tracking-widest uppercase mb-4 ${isPro ? 'text-[#60a5fa]' : plan.id === 'Enterprise' ? 'text-[#c084fc]' : 'text-slate-600 dark:text-slate-400'}`}>
+                    {plan.name}
+                  </h3>
+                  <div className="flex items-end gap-1 mb-2">
+                    <span className="text-4xl font-extrabold text-slate-900 dark:text-white leading-none">{plan.price}</span>
+                    {plan.period.split('\n')[0] && <span className="text-xs text-slate-500 dark:text-slate-500 font-medium mb-1">{plan.period.split('\n')[0]}</span>}
+                  </div>
+                  {plan.period.split('\n')[1] ? (
+                    <div className="text-[11px] text-slate-500 dark:text-slate-500">{plan.period.split('\n')[1]}</div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500 dark:text-slate-500">{plan.period}</div>
+                  )}
+                </div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${plan.iconColor}`}>
+                  {plan.icon}
+                </div>
               </div>
-            )
-          })}
+
+              {/* Credits Box */}
+              <div className="w-full bg-slate-50 dark:bg-[#121826] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-6">
+                {plan.creditsBox}
+              </div>
+
+              {/* Features */}
+              <ul className="flex-1 space-y-4 mb-8">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-3 text-xs">
+                    {f.active ? (
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${isPro ? 'bg-[#3b82f6] text-white' : plan.id === 'Enterprise' ? 'bg-[#8b5cf6] text-white' : 'bg-[#8b5cf6] text-white'}`}>
+                        ✓
+                      </div>
+                    ) : (
+                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[8px] font-bold text-slate-500 dark:text-slate-500">
+                        —
+                      </div>
+                    )}
+                    <span className={f.active ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-500'}>{f.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Button */}
+              <button
+                onClick={() => handleBuy(plan)}
+                disabled={loading === plan.id || currentPlan === plan.id}
+                className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all flex justify-center items-center gap-2 ${plan.buttonColor}`}
+              >
+                {loading === plan.id ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  currentPlan === plan.id ? 'Current Plan' : plan.buttonText
+                )}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Trust Badges */}
+      <div className="w-full bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800/80 rounded-[20px] p-6 lg:px-10 flex flex-col md:flex-row justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-[#8b5cf6]/10 text-[#a855f7] flex items-center justify-center text-lg">🛡️</div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Secure & Safe</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-500 leading-tight">Your data is encrypted<br/>and fully protected.</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-[#8b5cf6]/10 text-[#a855f7] flex items-center justify-center text-lg">🚫</div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Cancel Anytime</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-500 leading-tight">No lock-in. Cancel or<br/>upgrade anytime.</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-[#8b5cf6]/10 text-[#a855f7] flex items-center justify-center text-lg">🔄</div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Instant Access</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-500 leading-tight">Credits are added<br/>instantly after upgrade.</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-[#8b5cf6]/10 text-[#a855f7] flex items-center justify-center text-lg">✅</div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-900 dark:text-white mb-0.5">Satisfaction Guaranteed</div>
+            <div className="text-[9px] text-slate-500 dark:text-slate-500 leading-tight">Not satisfied? Get a full<br/>refund within 7 days.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-10">
+        
+        {/* FAQs */}
+        <div className="md:col-span-8 bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800/80 rounded-[24px] p-6 lg:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h3>
+            <button className="text-[11px] font-semibold text-[#a855f7] hover:text-[#c084fc] transition-colors">View all FAQs →</button>
+          </div>
+          <div className="flex flex-col divide-y divide-slate-800">
+            <div className="py-4 flex justify-between items-center cursor-pointer group">
+              <span className="text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:text-white transition-colors">Do unused credits roll over to the next month?</span>
+              <span className="text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:text-white transition-colors">›</span>
+            </div>
+            <div className="py-4 flex justify-between items-center cursor-pointer group">
+              <span className="text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:text-white transition-colors">Can I upgrade or downgrade my plan anytime?</span>
+              <span className="text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:text-white transition-colors">›</span>
+            </div>
+            <div className="py-4 flex justify-between items-center cursor-pointer group">
+              <span className="text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:text-white transition-colors">What payment methods do you accept?</span>
+              <span className="text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:text-white transition-colors">›</span>
+            </div>
+          </div>
         </div>
 
-        {/* Toast notification */}
-        {toast && (
-          <div className="pl-toast">
-            <span style={{ fontSize: 14, color: '#e2eaf6', fontWeight: 600 }}>{toast}</span>
+        {/* Extra Credits */}
+        <div className="md:col-span-4 bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800/80 rounded-[24px] p-6 lg:p-8 relative overflow-hidden flex flex-col justify-center items-center text-center">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#8b5cf6]/10 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="w-24 h-24 mb-4 relative z-10">
+            {/* 3D Wallet SVG representation */}
+            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+              <rect x="15" y="30" width="70" height="50" rx="8" fill="#7c3aed" />
+              <path d="M15,45 Q50,60 85,45 L85,72 Q50,85 15,72 Z" fill="#6d28d9" />
+              <rect x="70" y="45" width="20" height="10" rx="3" fill="#4c1d95" />
+              <circle cx="85" cy="50" r="3" fill="#a855f7" />
+              {/* Coins */}
+              <circle cx="30" cy="20" r="8" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+              <circle cx="45" cy="15" r="6" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+              <circle cx="20" cy="35" r="10" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+            </svg>
           </div>
-        )}
+
+          <div className="relative z-10">
+            <h3 className="text-[13px] font-bold text-slate-900 dark:text-white mb-2">Need more credits?</h3>
+            <p className="text-[10px] text-slate-600 dark:text-slate-400 mb-6 px-4">Top up your credits anytime and use them instantly.</p>
+            <button className="px-6 py-2.5 rounded-lg border border-[#8b5cf6]/50 hover:bg-[#8b5cf6]/10 text-[#c084fc] text-[11px] font-bold transition-colors">
+              Buy Extra Credits
+            </button>
+          </div>
+        </div>
 
       </div>
-    </>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 border border-emerald-500/30 rounded-2xl px-6 py-3 flex items-center gap-3 z-[10000] shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] animate-[fadeSlide_0.3s_ease]">
+          <span className="text-sm text-slate-700 dark:text-slate-200 font-semibold">{toast}</span>
+        </div>
+      )}
+
+    </div>
   )
-}
+} 
