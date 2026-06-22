@@ -1,11 +1,10 @@
- 
-
-
 const express = require('express')
 const router = express.Router()
 const rateLimit = require('express-rate-limit')
 const { body, validationResult } = require('express-validator')
 const { generateVideo, fetchVideoResult } = require('../services/veoai')
+const { authMiddleware, requireCredits } = require('../middleware/authMiddleware')
+const mergeController = require('../controllers/mergeController')
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 const VALID_ASPECT_RATIOS = [
@@ -57,7 +56,7 @@ const resultValidation = [
 ]
 
 // ─── POST /api/video/generate ──────────────────────────────────────────────
-router.post('/generate', videoLimiter, generateValidation, async (req, res) => {
+router.post('/generate', authMiddleware, requireCredits(1), videoLimiter, generateValidation, async (req, res) => {
   const errors = validationResult(req)
   if (!errors.isEmpty()) {
     return res.status(400).json({ error: errors.array()[0].msg })
@@ -91,6 +90,22 @@ router.post('/generate', videoLimiter, generateValidation, async (req, res) => {
 
     console.log(`✅ Scene ID obtained: ${sceneId}`)
 
+    try {
+      const Media = require('../models/Media')
+      await Media.findOneAndUpdate(
+        { id: 'vid_' + sceneId },
+        {
+          type: 'video',
+          originalUrl: 'PENDING',
+          userId: req.user ? req.user.id : null,
+          prompt: finalPrompt
+        },
+        { upsert: true }
+      );
+    } catch(e) {
+      console.log('Non-fatal media save error:', e.message);
+    }
+
     return res.status(202).json({
       success: true,
       sceneId,
@@ -99,12 +114,14 @@ router.post('/generate', videoLimiter, generateValidation, async (req, res) => {
   } catch (err) {
     console.error('❌ Video generate error:', err.message)
 
-    // Surface a clean message to the client
-    const clientMessage = err.message?.includes('limit') || err.message?.includes('block')
-      ? 'Generation limit reached. Please try again in a few minutes.'
-      : 'Video generation failed. Please try again.'
+    if (err.message === 'PROVIDER_LIMIT_REACHED' || err.message?.includes('limit')) {
+      return res.status(429).json({ error: 'Free engine limit reached (Max 2 videos per IP). Please wait or use a VPN.' })
+    }
+    if (err.message === 'SCRAPE_DO_LIMIT') {
+      return res.status(402).json({ error: 'Scrape.do API key limit exceeded. Please upgrade your Scrape.do plan.' })
+    }
 
-    return res.status(502).json({ error: clientMessage })
+    return res.status(502).json({ error: 'Video generation failed. Provider might be blocking the request.' })
   }
 })
 
@@ -164,5 +181,11 @@ router.post('/result', resultLimiter, resultValidation, async (req, res) => {
     })
   }
 })
+
+// ─── POST /api/video/merge ──────────────────────────────────────────────────
+router.post('/merge', authMiddleware, requireCredits(1), mergeController.mergeVideos)
+
+// ─── GET /api/video/download-merged/:mergeId ──────────────────────────────
+router.get('/download-merged/:mergeId', mergeController.serveMergedVideo)
 
 module.exports = router
