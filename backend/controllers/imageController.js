@@ -40,7 +40,9 @@ exports.generateImage = async (req, res) => {
           id: imageId,
           type: 'image',
           originalUrl: originalUrl,
-          sizeBytes: 1500000
+          sizeBytes: 1500000,
+          userId: req.user ? req.user.id : null,
+          prompt: prompt.trim()
         });
       }
     } catch (e) {
