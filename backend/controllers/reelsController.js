@@ -16,6 +16,22 @@ exports.generateReels = async (req, res, next) => {
     const sceneId = await generateVideo(prompt.trim(), aspect, null, false)
     console.log(`✅ Reels Pipeline registered: ${sceneId}`)
 
+    try {
+      const Media = require('../models/Media')
+      await Media.findOneAndUpdate(
+        { id: 'reels_' + sceneId.trim() },
+        {
+          type: 'reels',
+          originalUrl: 'PENDING',
+          userId: req.user ? req.user.id : null,
+          prompt: prompt.trim()
+        },
+        { upsert: true }
+      );
+    } catch(e) {
+      console.log('Non-fatal media save error:', e.message);
+    }
+
     return res.status(202).json({
       success: true,
       sceneId,
