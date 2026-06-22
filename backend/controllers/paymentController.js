@@ -26,7 +26,7 @@ exports.initializeScanPay = async (req, res, next) => {
       order_id: orderId,
       customer_details: {
         customer_id: "CUST_" + Date.now(),
-        customer_phone: "9999999999",
+        customer_phone: "8424036841",
         customer_email: email || "anonymous-client@veostudio.com"
       },
       order_meta: {
