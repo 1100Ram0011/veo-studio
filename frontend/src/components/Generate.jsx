@@ -1,487 +1,31 @@
- 
-
-
 import { useState, useRef } from 'react'
 import axios from 'axios'
-import API_URL from '../config'
+import API_URL, { getAuthHeaders } from '../config'
 
 const ASPECT_RATIOS = [
-  { label: 'Portrait', sub: '9:16', value: 'VIDEO_ASPECT_RATIO_PORTRAIT', icon: '▯', w: 18, h: 32 },
-  { label: 'Landscape', sub: '16:9', value: 'VIDEO_ASPECT_RATIO_LANDSCAPE', icon: '▭', w: 32, h: 18 },
-  { label: 'Square', sub: '1:1', value: 'VIDEO_ASPECT_RATIO_SQUARE', icon: '□', w: 26, h: 26 },
+  { label: '9:16', value: 'VIDEO_ASPECT_RATIO_PORTRAIT', icon: '📱' },
+  { label: '16:9', value: 'VIDEO_ASPECT_RATIO_LANDSCAPE', icon: '💻' },
+  { label: '1:1', value: 'VIDEO_ASPECT_RATIO_SQUARE', icon: '⬜' },
 ]
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+const STYLES = [
+  { label: 'Cinematic', icon: '🎬' },
+  { label: 'Realistic', icon: '📷' },
+  { label: 'Anime', icon: '✨' },
+  { label: 'Cyberpunk', icon: '🌆' },
+  { label: 'More', icon: '⚙️' },
+]
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  .gen-root {
-    font-family: 'Outfit', sans-serif;
-    background: #050a12;
-    min-height: 100vh;
-    padding: 32px 20px 60px;
-    color: #e2eaf6;
-  }
-
-  .gen-inner {
-    max-width: 780px;
-    margin: 0 auto;
-  }
-
-  /* Header */
-  .gen-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 36px;
-  }
-
-  .gen-title {
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #e2eaf6 0%, #7dd3fc 60%, #38bdf8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.15;
-  }
-
-  .gen-subtitle {
-    font-size: 14px;
-    color: #4a5f7a;
-    margin-top: 6px;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-  }
-
-  .credit-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 100px;
-    border: 1px solid rgba(56,189,248,0.25);
-    background: rgba(56,189,248,0.06);
-    font-size: 13px;
-    font-weight: 600;
-    color: #7dd3fc;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .credit-pill.danger {
-    border-color: rgba(248,113,113,0.3);
-    background: rgba(248,113,113,0.07);
-    color: #f87171;
-  }
-
-  .credit-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
-  }
-
-  .credit-dot.danger { background: #f87171; box-shadow: 0 0 8px #f87171; }
-
-  /* Card base */
-  .card {
-    background: #0b1520;
-    border: 1px solid #1a2535;
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 16px;
-    transition: border-color 0.2s;
-  }
-
-  .card-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #3a5068;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .card-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to right, #1a2535, transparent);
-  }
-
-  /* Prompt */
-  .prompt-wrap {
-    position: relative;
-  }
-
-  .prompt-textarea {
-    width: 100%;
-    background: #040810;
-    border: 1px solid #1a2535;
-    border-radius: 14px;
-    color: #e2eaf6;
-    font-size: 15px;
-    font-family: 'Outfit', sans-serif;
-    padding: 16px 18px;
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.25s, box-shadow 0.25s;
-    line-height: 1.6;
-    min-height: 120px;
-  }
-
-  .prompt-textarea::placeholder { color: #2a3a4e; }
-
-  .prompt-textarea:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(56,189,248,0.08), inset 0 1px 4px rgba(0,0,0,0.4);
-  }
-
-  .prompt-textarea:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .prompt-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-  }
-
-  .char-count {
-    font-size: 12px;
-    font-family: 'Space Mono', monospace;
-    color: #2e4255;
-  }
-
-  /* Aspect Ratio */
-  .aspect-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-
-  .aspect-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 18px 10px;
-    border-radius: 14px;
-    cursor: pointer;
-    border: 1px solid #1a2535;
-    background: #040810;
-    color: #3a5068;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .aspect-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, rgba(56,189,248,0.07) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .aspect-btn:hover { border-color: #2a3f56; color: #7dd3fc; }
-  .aspect-btn:hover::before { opacity: 1; }
-
-  .aspect-btn.active {
-    border-color: #38bdf8;
-    background: rgba(56,189,248,0.05);
-    color: #38bdf8;
-  }
-
-  .aspect-btn.active::before { opacity: 1; }
-
-  .aspect-frame {
-    border: 2.5px solid currentColor;
-    border-radius: 4px;
-    opacity: 0.9;
-    transition: all 0.2s;
-  }
-
-  .aspect-btn.active .aspect-frame {
-    box-shadow: 0 0 10px rgba(56,189,248,0.4);
-  }
-
-  .aspect-label {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-  }
-
-  .aspect-sub {
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    opacity: 0.6;
-    margin-top: -6px;
-  }
-
-  /* Generate Button */
-  .gen-btn {
-    width: 100%;
-    padding: 18px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    transition: all 0.25s;
-    margin-bottom: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .gen-btn.primary {
-    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
-    color: #fff;
-    box-shadow: 0 4px 24px rgba(14,165,233,0.3);
-  }
-
-  .gen-btn.primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 32px rgba(14,165,233,0.45);
-  }
-
-  .gen-btn.primary:active { transform: translateY(0); }
-
-  .gen-btn.primary:disabled {
-    background: #1a2535;
-    color: #3a5068;
-    box-shadow: none;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .gen-btn.cancel {
-    background: transparent;
-    border: 1px solid rgba(248,113,113,0.25);
-    color: #f87171;
-  }
-
-  .gen-btn.cancel:hover {
-    background: rgba(248,113,113,0.06);
-    border-color: rgba(248,113,113,0.5);
-  }
-
-  /* Error */
-  .error-box {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 18px;
-    background: rgba(248,113,113,0.06);
-    border: 1px solid rgba(248,113,113,0.2);
-    border-radius: 14px;
-    color: #f87171;
-    font-size: 14px;
-    margin-bottom: 16px;
-    line-height: 1.5;
-  }
-
-  .error-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-
-  /* Progress */
-  .progress-card {
-    background: #0b1520;
-    border: 1px solid #1a2535;
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 16px;
-  }
-
-  .progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-  }
-
-  .progress-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #7dd3fc;
-  }
-
-  .spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(56,189,248,0.2);
-    border-top-color: #38bdf8;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .progress-pct {
-    font-size: 13px;
-    font-weight: 700;
-    font-family: 'Space Mono', monospace;
-    color: #38bdf8;
-  }
-
-  .progress-track {
-    height: 5px;
-    background: #0f1e2e;
-    border-radius: 100px;
-    overflow: hidden;
-    margin-bottom: 16px;
-  }
-
-  .progress-bar {
-    height: 100%;
-    border-radius: 100px;
-    background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 50%, #3b82f6 100%);
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 10px rgba(56,189,248,0.5);
-  }
-
-  .log-box {
-    background: #040810;
-    border-radius: 12px;
-    padding: 12px 14px;
-    max-height: 140px;
-    overflow-y: auto;
-    border: 1px solid #111d2a;
-  }
-
-  .log-box::-webkit-scrollbar { width: 3px; }
-  .log-box::-webkit-scrollbar-track { background: transparent; }
-  .log-box::-webkit-scrollbar-thumb { background: #1e3048; border-radius: 10px; }
-
-  .log-line {
-    font-size: 12px;
-    font-family: 'Space Mono', monospace;
-    color: #2e4c66;
-    line-height: 1.7;
-  }
-
-  .log-line:last-child { color: #4a7a9b; }
-
-  /* Video Result */
-  .result-card {
-    background: #0b1520;
-    border: 1px solid rgba(56,189,248,0.2);
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .result-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #38bdf8, transparent);
-    opacity: 0.6;
-  }
-
-  .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-  }
-
-  .result-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #4ade80;
-  }
-
-  .result-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #4ade80;
-    box-shadow: 0 0 10px #4ade80;
-    animation: pulse 2s ease infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .download-btn {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
-    color: #fff;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.2s;
-    font-family: 'Outfit', sans-serif;
-    box-shadow: 0 3px 14px rgba(56,189,248,0.3);
-  }
-
-  .download-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(56,189,248,0.45);
-  }
-
-  .video-player {
-    width: 100%;
-    border-radius: 14px;
-    max-height: 380px;
-    background: #000;
-    display: block;
-    box-shadow: 0 4px 40px rgba(0,0,0,0.6);
-  }
-
-  .video-url {
-    margin-top: 10px;
-    font-size: 11px;
-    font-family: 'Space Mono', monospace;
-    color: #1e3048;
-    word-break: break-all;
-    line-height: 1.5;
-  }
-
-  /* Responsive */
-  @media (max-width: 560px) {
-    .gen-root { padding: 24px 16px 48px; }
-    .gen-title { font-size: 26px; }
-    .aspect-grid { gap: 8px; }
-    .aspect-btn { padding: 14px 6px; }
-    .aspect-label { font-size: 12px; }
-    .gen-btn { font-size: 15px; padding: 16px; }
-  }
-`
+const DURATIONS = ['5s', '10s', '15s']
+const QUALITIES = ['Standard', 'HD', 'Ultra']
 
 export default function Generate({ history, setHistory, credits, setCredits }) {
   const [prompt, setPrompt] = useState('')
   const [aspect, setAspect] = useState('VIDEO_ASPECT_RATIO_PORTRAIT')
+  const [style, setStyle] = useState('Cinematic')
+  const [duration, setDuration] = useState('10s')
+  const [quality, setQuality] = useState('HD')
+  
   const [status, setStatus] = useState('idle')
   const [videoUrl, setVideoUrl] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
@@ -489,10 +33,13 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
   const [log, setLog] = useState([])
   const pollRef = useRef(null)
 
+  const recentVideos = history.filter(h => h.type === 'video').slice(0, 4)
+  const estimatedCost = quality === 'Ultra' ? 10 : quality === 'HD' ? 7 : 5
+
   const addLog = (msg) => setLog(prev => [...prev.slice(-8), msg])
 
   const generateVideo = async () => {
-    if (!prompt.trim() || credits <= 0 || status === 'generating' || status === 'polling') return
+    if (!prompt.trim() || credits < estimatedCost || status === 'generating' || status === 'polling') return
     setStatus('generating')
     setVideoUrl(null)
     setErrorMsg('')
@@ -501,10 +48,12 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
     addLog('Submitting request to backend…')
 
     try {
+      const modifiedPrompt = `${prompt.trim()}, ${style} style, ${quality} quality, ${duration}`
+      
       const genRes = await axios.post(`${API_URL}/api/video/generate`, {
-        prompt: prompt.trim(),
+        prompt: modifiedPrompt,
         aspectRatio: aspect,
-      })
+      }, getAuthHeaders())
       const sceneId = genRes.data.sceneId
       if (!sceneId) throw new Error('Scene ID not received')
       setProgress(25)
@@ -521,20 +70,20 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
         setProgress(Math.min(25 + attempts * 3.5, 95))
         addLog(`Polling server — attempt ${attempts}/${maxAttempts}`)
         try {
-          const pollRes = await axios.post(`${API_URL}/api/video/result`, { sceneId })
+          const pollRes = await axios.post(`${API_URL}/api/video/result`, { sceneId }, getAuthHeaders())
           const url = pollRes.data.videoUrl
           if (url && (url.includes('.mp4') || url.startsWith('http'))) {
-            if (!pollRef.current) return; // Prevent duplicate execution from overlapping requests
+            if (!pollRef.current) return;
             clearInterval(pollRef.current)
             pollRef.current = null
             setVideoUrl(url)
             setProgress(100)
             setStatus('done')
-            setCredits(c => c - 1)
+            for(let i=0; i<estimatedCost; i++) setCredits(c => c - 1)
             addLog('Video is ready!')
             setHistory(prev => [{
               id: sceneId, prompt: prompt.trim(), status: 'completed',
-              url, createdAt: new Date().toISOString(), aspect,
+              url, createdAt: new Date().toISOString(), aspect, type: 'video'
             }, ...prev])
           } else if (pollRes.data.failed) {
             if (!pollRef.current) return;
@@ -575,132 +124,305 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
   }
 
   const isGenerating = status === 'generating' || status === 'polling'
-  const canGenerate = prompt.trim() && credits > 0 && !isGenerating
+  const canGenerate = prompt.trim() && credits >= estimatedCost && !isGenerating
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="gen-root">
-        <div className="gen-inner">
+    <div className="w-full max-w-[1400px] mx-auto pb-24 md:pb-0 animate-[fadeSlide_0.3s_ease]">
 
-          {/* Header */}
-          <div className="gen-header">
-            <div>
-              <h1 className="gen-title">Generate Video</h1>
-              <p className="gen-subtitle">Describe your scene — AI will render it for you</p>
-            </div>
-            <div className={`credit-pill ${credits <= 0 ? 'danger' : ''}`}>
-              <span className={`credit-dot ${credits <= 0 ? 'danger' : ''}`}></span>
-              {credits} credit{credits !== 1 ? 's' : ''} left
-            </div>
-          </div>
+      {/* Top Header - Hidden on Mobile to save space (since Mobile Header has VeoStudio) */}
+      <div className="hidden md:flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+            Master Video <span className="text-blue-500 dark:text-blue-400">✨</span>
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-500">Describe your scene — AI will render it for you</p>
+        </div>
+      </div>
 
-          {/* Prompt */}
-          <div className="card">
-            <div className="card-label">Prompt</div>
-            <div className="prompt-wrap">
+      <div className="flex flex-col xl:flex-row gap-4 md:gap-6">
+        
+        {/* LEFT COLUMN (Mobile: Stacks Naturally) */}
+        <div className="flex-[1.5] flex flex-col gap-4 md:gap-5 order-1">
+          
+          {/* Prompt Section */}
+          <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                Prompt <span className="text-blue-500">✨</span>
+              </h3>
+              <button className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center text-[8px]">?</span>
+                How to create?
+              </button>
+            </div>
+            
+            <div className="relative bg-slate-50 dark:bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 p-3 mb-3">
               <textarea
-                className="prompt-textarea"
+                className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-slate-300 placeholder:text-slate-600 dark:text-slate-400 dark:placeholder:text-slate-600 resize-none focus:ring-0 p-0 min-h-[80px]"
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
-                placeholder="A cinematic shot of a futuristic city at golden hour, with flying vehicles weaving between neon-lit towers…"
+                placeholder="A cinematic shot of a futuristic city at golden hour, with flying vehicles weaving between neon-lit towers..."
                 disabled={isGenerating}
                 rows={4}
               />
-              <div className="prompt-meta">
-                <span className="char-count">{prompt.length > 0 ? `${prompt.length} chars` : ''}</span>
-                <span style={{ fontSize: 11, color: '#1e3a52', fontFamily: "'Space Mono', monospace" }}>∞ no limit</span>
+              <div className="text-right text-[11px] text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono mt-1">
+                {prompt.length} / 2000
               </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button className="flex-1 flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-[#121929] hover:bg-blue-100 dark:hover:bg-[#1a2333] border border-blue-100 dark:border-slate-800 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 transition-colors">
+                <span className="text-blue-500">✨</span> Enhance Prompt
+              </button>
+              <button className="flex-1 flex justify-center items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-[#121929] hover:bg-slate-100 dark:hover:bg-[#1a2333] border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 transition-colors" onClick={() => setPrompt('')}>
+                <span className="text-slate-600 dark:text-slate-400">🗑️</span> Clear
+              </button>
             </div>
           </div>
 
-          {/* Aspect Ratio */}
-          <div className="card">
-            <div className="card-label">Aspect Ratio</div>
-            <div className="aspect-grid">
-              {ASPECT_RATIOS.map(r => (
+          {/* Style Section */}
+          <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Style <span className="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-normal text-xs">(Optional)</span>
+              </h3>
+              <a href="#" className="text-xs text-blue-600 dark:text-blue-400 font-medium">View all</a>
+            </div>
+            <div className="flex overflow-x-auto gap-3 pb-2 custom-scrollbar snap-x">
+              {STYLES.map(s => (
                 <button
-                  key={r.value}
-                  className={`aspect-btn ${aspect === r.value ? 'active' : ''}`}
-                  onClick={() => setAspect(r.value)}
-                  disabled={isGenerating}
+                  key={s.label}
+                  onClick={() => setStyle(s.label)}
+                  className={`flex-none w-20 flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all snap-start ${
+                    style === s.label 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[inset_0_0_12px_rgba(59,130,246,0.1)]' 
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0f18] text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-300 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200'
+                  }`}
                 >
-                  <div
-                    className="aspect-frame"
-                    style={{ width: r.w, height: r.h }}
-                  />
-                  <span className="aspect-label">{r.label}</span>
-                  <span className="aspect-sub">{r.sub}</span>
+                  <span className="text-xl mb-1">{s.icon}</span>
+                  <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap">{s.label}</span>
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Action Button */}
-          {!isGenerating ? (
-            <button
-              className="gen-btn primary"
-              onClick={generateVideo}
-              disabled={!canGenerate}
-            >
-              {status === 'error' ? '↻ Try Again' : '⚡ Generate Video'}
-            </button>
-          ) : (
-            <button className="gen-btn cancel" onClick={reset}>
-              ✕ Cancel Generation
-            </button>
-          )}
-
-          {/* Error */}
-          {errorMsg && (
-            <div className="error-box">
-              <span className="error-icon">⚠</span>
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          {/* Progress */}
-          {isGenerating && (
-            <div className="progress-card">
-              <div className="progress-header">
-                <div className="progress-status">
-                  <div className="spinner" />
-                  {status === 'generating' ? 'Submitting…' : 'Generating video…'}
+          
+          {/* Mobile Preview Area (Inserted here on Mobile, hidden on Desktop) */}
+          <div className="xl:hidden order-2 mt-2">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Preview <span className="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-normal ml-1">(Example)</span></h3>
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-2 relative shadow-sm">
+              {status === 'done' && videoUrl ? (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                  <video controls className="w-full h-full object-contain">
+                    <source src={videoUrl} type="video/mp4" />
+                  </video>
                 </div>
-                <span className="progress-pct">{Math.round(progress)}%</span>
-              </div>
-              <div className="progress-track">
-                <div className="progress-bar" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="log-box">
-                {log.map((line, i) => (
-                  <div key={i} className="log-line">&gt; {line}</div>
+              ) : (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-[#121929] border border-slate-200 dark:border-slate-800/50">
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=1000')] bg-cover bg-center opacity-80 dark:opacity-60 mix-blend-luminosity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 dark:from-[#0b101d]/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-xl pl-1 shadow-lg">▶</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Aspect Ratio & Duration - Side by Side Grid */}
+          <div className="grid grid-cols-2 gap-4 order-3">
+            {/* Aspect Ratio */}
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Aspect Ratio</h3>
+              <div className="flex gap-2">
+                {ASPECT_RATIOS.map(r => (
+                  <button
+                    key={r.label}
+                    onClick={() => setAspect(r.value)}
+                    className={`flex flex-col items-center justify-center flex-1 py-2 rounded-xl border transition-all ${
+                      aspect === r.value 
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0f18] text-slate-500 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="text-base mb-1 leading-none">{r.icon}</span>
+                    <span className="text-[10px] font-semibold">{r.label}</span>
+                  </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Video Result */}
-          {status === 'done' && videoUrl && (
-            <div className="result-card">
-              <div className="result-header">
-                <div className="result-badge">
-                  <span className="result-dot" />
-                  Video Ready
-                </div>
-                <a href={videoUrl} download target="_blank" rel="noreferrer" className="download-btn">
-                  ↓ Download
-                </a>
+            {/* Duration */}
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Duration</h3>
+              <div className="flex gap-2 h-[52px]">
+                {DURATIONS.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDuration(d)}
+                    className={`flex items-center justify-center flex-1 rounded-xl border transition-all text-xs font-bold ${
+                      duration === d 
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0f18] text-slate-500 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-300'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
-              <video controls className="video-player">
-                <source src={videoUrl} type="video/mp4" />
-              </video>
-              <div className="video-url">{videoUrl}</div>
             </div>
-          )}
+          </div>
 
+          {/* Quality & Estimated Cost - Side by Side Grid */}
+          <div className="grid grid-cols-2 gap-4 order-4 mb-2">
+            {/* Quality */}
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Quality</h3>
+              <div className="flex gap-2 h-[52px]">
+                {QUALITIES.slice(1).map(q => (
+                  <button
+                    key={q}
+                    onClick={() => setQuality(q)}
+                    className={`flex items-center justify-center flex-1 rounded-xl border transition-all text-xs font-bold ${
+                      quality === q 
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' 
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0f18] text-slate-500 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-300'
+                    }`}
+                  >
+                    {q} {q === 'Ultra' && <span className="ml-1 text-blue-500">✨</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Estimated Cost */}
+            <div className="bg-slate-50 dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm flex flex-col justify-center items-center">
+               <h3 className="text-xs font-bold text-slate-900 dark:text-white mb-2 text-center">Estimated Cost</h3>
+               <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-base">
+                 <span>⚡</span> {estimatedCost} Credits
+               </div>
+            </div>
+          </div>
+
+          {/* Generate Area */}
+          <div className="order-5 mt-2 flex flex-col gap-3">
+            {isGenerating && (
+              <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm animate-[fadeIn_0.3s_ease]">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400">Generating Video...</span>
+                  <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{Math.round(progress)}%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-[#050a12] rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 mb-2">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
+                    style={{ width: `${progress}%` }} 
+                  />
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 text-center animate-pulse">
+                  {log[log.length - 1] || 'Processing...'}
+                </div>
+              </div>
+            )}
+            {!isGenerating ? (
+              <button
+                className={`w-full py-4 rounded-2xl text-white font-bold text-[15px] shadow-[0_4px_15px_rgba(59,130,246,0.25)] transition-all flex justify-between items-center px-6 ${
+                  canGenerate ? 'bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-500 hover:scale-[1.01]' : 'bg-slate-300 dark:bg-[#1a2333] text-slate-500 dark:text-slate-500 cursor-not-allowed shadow-none'
+                }`}
+                onClick={generateVideo}
+                disabled={!canGenerate}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-400 text-lg">⚡</span> Generate Video
+                </div>
+                <span className="text-slate-900 dark:text-white/80 text-sm font-medium">{estimatedCost} Credits</span>
+              </button>
+            ) : (
+              <button 
+                className="w-full py-3 rounded-2xl text-red-500 font-bold bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all flex justify-center items-center gap-2" 
+                onClick={reset}
+              >
+                ✕ Cancel Generation
+              </button>
+            )}
+          </div>
+          
+        </div>
+
+        {/* RIGHT COLUMN: Desktop Preview & History (Hidden on Mobile) */}
+        <div className="hidden xl:flex flex-1 flex-col gap-6 order-2">
+          
+          {/* Desktop Preview Panel */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Preview <span className="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-normal ml-1">(Example)</span></h3>
+              <button className="text-blue-600 dark:text-blue-400 text-xs font-semibold flex items-center gap-1"><span className="text-lg">↻</span> Refresh</button>
+            </div>
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-2 relative group overflow-hidden shadow-sm">
+              
+              {status === 'done' && videoUrl ? (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                  <video controls className="w-full h-full object-contain">
+                    <source src={videoUrl} type="video/mp4" />
+                  </video>
+                </div>
+              ) : (
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-[#121929] border border-slate-200 dark:border-slate-800/50">
+                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542382156909-9ae37b3f56fd?auto=format&fit=crop&q=80&w=1000')] bg-cover bg-center opacity-80 dark:opacity-60 mix-blend-luminosity" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 dark:from-[#0b101d]/80 via-transparent to-transparent" />
+                  
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-2xl pl-1 shadow-2xl cursor-pointer group-hover:scale-110 transition-all">
+                      ▶
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Generations */}
+          <div className="flex flex-col flex-1 mt-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Generations</h3>
+              <a href="#" className="text-xs font-semibold text-blue-600 dark:text-blue-400">View all</a>
+            </div>
+            
+            <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex-1 overflow-y-auto max-h-[380px] custom-scrollbar space-y-3 shadow-sm">
+              {recentVideos.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm py-10">
+                  <div className="text-3xl mb-2 opacity-50">🎬</div>
+                  No recent generations
+                </div>
+              ) : (
+                recentVideos.map((vid, idx) => (
+                  <div key={idx} className="flex gap-4 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-[#121929] border border-transparent hover:border-slate-200 dark:hover:border-slate-200 dark:border-slate-800 transition-colors cursor-pointer group">
+                    <div className="w-24 h-16 rounded-lg bg-black border border-slate-200 dark:border-slate-800 overflow-hidden flex-shrink-0 relative">
+                       <video src={vid.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                         <span className="text-slate-900 dark:text-white text-xs">▶</span>
+                       </div>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-[13px] font-bold text-slate-900 dark:text-slate-200 truncate pr-2">{vid.prompt || 'Generated Video'}</h4>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                           {new Date(vid.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-500">
+                        <span className="flex items-center gap-1">📱 9:16</span>
+                        <span className="flex items-center gap-1">⏱ 10s</span>
+                        <span className="flex items-center gap-1 text-yellow-500">⚡ 7 Credits</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          
         </div>
       </div>
-    </>
+    </div>
   )
 }
+ 
