@@ -18,6 +18,9 @@ exports.generateVoice = async (req, res, next) => {
       message: 'Vocal track compiled successfully.'
     })
   } catch (error) {
+    if (error.message === 'PROVIDER_LIMIT_REACHED') {
+      return res.status(429).json({ error: 'Free engine usage limit reached. Please wait or use a premium API.' })
+    }
     next(error)
   }
 }
