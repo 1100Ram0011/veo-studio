@@ -16,6 +16,16 @@ const authMiddleware = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found. Please login again.' });
     }
 
+    // Check plan expiry for ProMonthly (time-limited subscription)
+    if (user.planExpiry && new Date() > new Date(user.planExpiry)) {
+      // ProMonthly has expired — downgrade back to Free
+      user.plan = 'Free';
+      user.isUnlimited = false;
+      user.planExpiry = null;
+      // Note: credits are NOT reset — Pack credits (if any) remain
+      await user.save();
+    }
+
     req.user = user;
     next();
   } catch (err) {
