@@ -41,7 +41,7 @@ export default function App() {
     return localStorage.getItem('veo_app_premium_unlocked_flag') === 'true';
   });
 
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(() => !localStorage.getItem('veo_token'))
   const [user, setUser] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
@@ -56,11 +56,16 @@ export default function App() {
             if (res.data.user.isUnlimited) {
               localStorage.setItem('veo_app_premium_unlocked_flag', 'true');
             }
+            setShowAuthModal(false);
           }
         })
         .catch(() => {
           localStorage.removeItem('veo_token');
+          setUser(null);
+          setShowAuthModal(true);
         });
+    } else {
+      setShowAuthModal(true);
     }
   }, []);
 
@@ -84,6 +89,13 @@ export default function App() {
     } else {
       setTab('plans');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('veo_token');
+    localStorage.removeItem('userEmail');
+    setUser(null);
+    window.location.href = '/';
   };
 
   const handleUsageAccounting = () => {
@@ -213,8 +225,13 @@ export default function App() {
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
             {user ? (
-              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md cursor-pointer" onClick={() => setShowAuthModal(true)}>
-                {user.name.charAt(0).toUpperCase()}
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md cursor-help" title={user.email}>
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <button onClick={handleLogout} className="text-lg p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-full transition-colors" title="Log Out">
+                  🚪
+                </button>
               </div>
             ) : (
               <button 
@@ -299,7 +316,7 @@ export default function App() {
       {showAuthModal && (
         <AuthModal 
           onAuthSuccess={handleAuthSuccess} 
-          onClose={() => setShowAuthModal(false)} 
+          onClose={user ? () => setShowAuthModal(false) : undefined} 
         />
       )}
     </div>
