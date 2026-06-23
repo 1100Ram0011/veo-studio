@@ -19,6 +19,12 @@ const STYLES = [
 const DURATIONS = ['5s', '10s', '15s']
 const QUALITIES = ['Standard', 'HD', 'Ultra']
 
+const QUICK_TEMPLATES = [
+  { label: 'Tech News', prompt: 'A highly engaging tech news background, futuristic studio setting, holographic displays showing code and binary, cinematic lighting.', icon: '💻' },
+  { label: 'Motivation', prompt: 'A cinematic slow-motion shot of a person reaching the peak of a mountain at sunrise, golden hour lighting, highly inspiring.', icon: '⛰️' },
+  { label: 'Product Promo', prompt: 'A sleek, modern 3D render of a smart gadget floating in a studio environment with clean white lighting, hyper-realistic details.', icon: '📦' },
+];
+
 export default function Generate({ history, setHistory, credits, setCredits }) {
   const [prompt, setPrompt] = useState('')
   const [aspect, setAspect] = useState('VIDEO_ASPECT_RATIO_PORTRAIT')
@@ -143,6 +149,27 @@ export default function Generate({ history, setHistory, credits, setCredits }) {
         
         {/* LEFT COLUMN (Mobile: Stacks Naturally) */}
         <div className="flex-[1.5] flex flex-col gap-4 md:gap-5 order-1">
+
+          {/* Quick Templates Section */}
+          <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
+             <div className="flex justify-between items-center mb-3">
+               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                 Quick Templates <span className="text-blue-500">⚡</span>
+               </h3>
+             </div>
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {QUICK_TEMPLATES.map((t) => (
+                  <button 
+                    key={t.label} 
+                    onClick={() => setPrompt(t.prompt)}
+                    className="flex flex-col items-center justify-center p-3 border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-xl transition-all transform hover:scale-[1.02]"
+                  >
+                    <span className="text-2xl mb-1">{t.icon}</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{t.label}</span>
+                  </button>
+                ))}
+             </div>
+          </div>
           
           {/* Prompt Section */}
           <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm">
