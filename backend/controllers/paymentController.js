@@ -10,8 +10,15 @@ const CF_BASE_URL = isProd ? "https://api.cashfree.com/pg" : "https://sandbox.ca
 exports.initializeScanPay = async (req, res, next) => {
   try {
     const { planId, email } = req.body;
-    let amount = 10;
-    if (planId === 'Enterprise') amount = 499;
+
+    // Plan pricing map
+    const PLAN_PRICES = {
+      Pack: 10,        // ₹10 one-time pack — 50 credits, no expiry
+      ProMonthly: 199, // ₹199/month — Unlimited for 30 days
+    };
+
+    const amount = PLAN_PRICES[planId];
+    if (!amount) return res.status(400).json({ error: 'Invalid planId. Valid options: Pack, ProMonthly' });
 
     const orderId = 'ORD_' + Date.now() + Math.floor(Math.random() * 1000);
 
@@ -42,7 +49,7 @@ exports.initializeScanPay = async (req, res, next) => {
         'Content-Type': 'application/json'
       }
     });
-    
+
     return res.status(200).json({
       success: true,
       payment_session_id: response.data.payment_session_id,
@@ -50,9 +57,9 @@ exports.initializeScanPay = async (req, res, next) => {
       amount: amount
     });
 
-  } catch (error) { 
+  } catch (error) {
     console.error("❌ Cashfree Order Creation Error:", error?.response?.data || error.message);
-    next(error); 
+    next(error);
   }
 };
 
@@ -68,7 +75,7 @@ exports.verifyPaymentStatus = async (req, res, next) => {
         'x-api-version': '2023-08-01'
       }
     });
-    
+
     // Check if any payment is SUCCESS
     const payments = response.data;
     const isSuccess = payments.some(p => p.payment_status === "SUCCESS");
@@ -86,9 +93,19 @@ exports.verifyPaymentStatus = async (req, res, next) => {
     if (email) {
       const user = await User.findOne({ email });
       if (user) {
-        user.isUnlimited = true;
-        user.plan = planId || 'Pro';
-        user.credits = (user.credits || 0) + (planId === 'Enterprise' ? 200 : 50);
+        if (planId === 'ProMonthly') {
+          // ₹199/month — Unlimited usage, expires in 30 days
+          user.plan = 'ProMonthly';
+          user.isUnlimited = true;
+          user.planExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          // Do NOT modify credits — unlimited plan bypasses credit checks
+        } else if (planId === 'Pack') {
+          // ₹10 one-time — Exactly 50 credits, no expiry
+          user.plan = 'Pack';
+          user.credits = (user.credits || 0) + 50;
+          user.isUnlimited = false; // Credits must deduct normally
+          user.planExpiry = null;   // No expiry for credit pack
+        }
         await user.save();
       }
     }
@@ -96,12 +113,12 @@ exports.verifyPaymentStatus = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       status: 'SUCCESS',
-      isUnlimited: true, 
+      isUnlimited: planId === 'ProMonthly',
       message: 'Payment confirmed. Access granted.'
     });
 
   } catch (error) {
     console.error("❌ Cashfree Verify Error:", error?.response?.data || error.message);
-    next(error); 
+    next(error);
   }
 };
