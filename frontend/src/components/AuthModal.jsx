@@ -2,8 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import API_URL from '../config';
 
-export default function AuthModal({ onAuthSuccess, onClose }) {
-  const [isLogin, setIsLogin] = useState(true);
+export default function AuthModal({ onAuthSuccess, onClose, initialMode = 'login' }) {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -55,10 +55,15 @@ export default function AuthModal({ onAuthSuccess, onClose }) {
         )}
 
         <div className="text-center mb-8 relative z-10">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-blue-500/30 transform hover:scale-105 transition-all">
+              <span className="text-3xl font-bold ml-1">▶</span>
+            </div>
+          </div>
           <h2 className="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-indigo-300 bg-clip-text text-transparent">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
             {isLogin ? 'Sign in to continue generating masterpieces' : 'Join VeoStudio and unlock premium generation'}
           </p>
         </div>
