@@ -15,7 +15,13 @@ exports.generateScript = async (req, res) => {
     // Call Pollinations Text AI
     const promptInstructions = `You are an expert AI video prompt engineer. Turn this basic user idea into a highly detailed, cinematic prompt suitable for AI Video or Image generators (like Midjourney, Sora, or Runway). The output should describe the scene setting, camera angles, visual style, lighting, subjects, and actions. Make it around 3 to 4 paragraphs long. Do NOT include any conversation or introductory text, just return the raw final prompt. The user idea is: "${idea}"`;
     
-    const response = await axios.get(`https://text.pollinations.ai/prompt/${encodeURIComponent(promptInstructions)}`);
+    const response = await axios.get(`https://text.pollinations.ai/prompt/${encodeURIComponent(promptInstructions)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/plain,application/json'
+      },
+      timeout: 15000
+    });
     const generatedPrompt = response.data;
 
     // Save to DB (optional for scripts)
@@ -63,7 +69,13 @@ exports.generate4PartScript = async (req, res) => {
     
     The user idea is: "${idea}"`;
     
-    const response = await axios.get(`https://text.pollinations.ai/prompt/${encodeURIComponent(promptInstructions)}`);
+    const response = await axios.get(`https://text.pollinations.ai/prompt/${encodeURIComponent(promptInstructions)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/plain,application/json'
+      },
+      timeout: 15000
+    });
     
     let rawText = response.data;
     let prompts = [];
