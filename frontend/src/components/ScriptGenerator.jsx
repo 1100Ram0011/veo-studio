@@ -22,7 +22,7 @@ export default function ScriptGenerator({ credits, setCredits }) {
     try {
       const res = await axios.post(`${API_URL}/api/script/generate`, { idea: idea.trim() }, getAuthHeaders())
       if (res.data.success) {
-        setScriptResult(res.data.scriptText)
+        setScriptResult(res.data.script)
       } else {
         setErrorMsg('Failed to generate script.')
       }
