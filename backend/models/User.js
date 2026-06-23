@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema({
   },
   plan: { type: String, default: 'Free' },
   isUnlimited: { type: Boolean, default: false },
+  planExpiry: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 })
 
