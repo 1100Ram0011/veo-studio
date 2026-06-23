@@ -24,11 +24,12 @@ const PLANS = [
     ],
   },
   {
-    id: 'Pro',
-    name: 'PRO',
+    id: 'Pack',
+    name: 'MINI VIDEO PACK',
     price: '₹10',
-    period: '/month\nBilled monthly',
-    creditsBox: '50 monthly credits',
+    period: 'One-time',
+    periodSub: 'No expiry — use anytime',
+    creditsBox: '50 Credits (50 Videos)',
     icon: '🔥',
     badge: 'POPULAR',
     color: 'bg-white dark:bg-[#0b101d] border-[#1e40af] shadow-[0_0_30px_rgba(30,64,175,0.2)]',
@@ -37,9 +38,9 @@ const PLANS = [
     buttonText: 'Buy for ₹10',
     buttonColor: 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] hover:opacity-90 text-white',
     features: [
-      { text: '50 Video Credits', active: true },
-      { text: '25 Audio Credits', active: true },
-      { text: '20 AI Voice Credits', active: true },
+      { text: 'Exactly 50 Videos', active: true },
+      { text: 'No Expiry Date — Ever', active: true },
+      { text: 'Credit deducts per video', active: true },
       { text: 'Image Generator', active: true },
       { text: 'All AI Features', active: true },
       { text: 'Priority Processing', active: true },
@@ -47,22 +48,23 @@ const PLANS = [
     ],
   },
   {
-    id: 'Enterprise',
-    name: 'ENTERPRISE',
-    price: '₹499',
-    period: '/month\nBilled monthly',
-    creditsBox: '2000 monthly credits',
+    id: 'ProMonthly',
+    name: 'PRO MONTHLY',
+    price: '₹199',
+    period: '/month',
+    periodSub: 'Expires in 30 days',
+    creditsBox: 'Unlimited Videos for 30 Days',
     icon: '👑',
     badge: 'BEST VALUE',
     color: 'bg-white dark:bg-[#0b101d] border-[#6b21a8]',
     iconColor: 'bg-[#8b5cf6]/20 text-[#c084fc]',
     badgeColor: 'bg-[#8b5cf6] text-white',
-    buttonText: 'Buy for ₹499',
+    buttonText: 'Subscribe for ₹199/mo',
     buttonColor: 'bg-gradient-to-r from-[#7c3aed] to-[#8b5cf6] hover:opacity-90 text-white',
     features: [
-      { text: '2000 Video Credits', active: true },
-      { text: 'Unlimited Audio Credits', active: true },
-      { text: 'Unlimited AI Voice Credits', active: true },
+      { text: 'Unlimited Videos', active: true },
+      { text: 'Valid for 30 Days', active: true },
+      { text: 'Unlimited AI Voice', active: true },
       { text: 'Advanced AI Models', active: true },
       { text: 'Commercial Rights', active: true },
       { text: 'Priority Processing', active: true },
@@ -70,6 +72,7 @@ const PLANS = [
     ],
   },
 ]
+
 
 export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEmail }) {
   const [loading, setLoading] = useState(null)
@@ -107,8 +110,8 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
             setLoading(null)
           }
           if (result.paymentDetails) {
-            // Assume 50 credits for Pro, 2000 for Enterprise based on UI
-            const creditsToAdd = plan.id === 'Pro' ? 50 : 2000;
+            // Pack = +50 credits. ProMonthly = unlimited (0 credits to add, server sets isUnlimited)
+            const creditsToAdd = plan.id === 'Pack' ? 50 : 0
             verifyPayment(res.data.order_id, plan.id, emailToUse, creditsToAdd)
           }
         })
@@ -127,9 +130,14 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
         email
       })
       if (res.data.success && res.data.status === 'SUCCESS') {
-        setCredits(prev => prev + creditsToAdd)
+        if (creditsToAdd > 0) {
+          setCredits(prev => prev + creditsToAdd)
+        }
         setCurrentPlan(planId)
-        showToast(`🎉 Payment verified! ${creditsToAdd} credits added.`)
+        const msg = planId === 'ProMonthly'
+          ? '🎉 Subscribed! Unlimited videos for 30 days.'
+          : `🎉 Payment verified! ${creditsToAdd} credits added.`
+        showToast(msg)
       } else {
         showToast('⏳ Payment not confirmed yet. Try again in a moment.')
       }
@@ -159,11 +167,18 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
       {/* Pricing Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {PLANS.map(plan => {
-          const isPro = plan.id === 'Pro';
+          const isPack = plan.id === 'Pack';
+          const isPro = plan.id === 'ProMonthly';
           return (
             <div
               key={plan.id}
-              className={`relative flex flex-col bg-white dark:bg-[#0b101d] border ${isPro ? 'border-[#1e40af] shadow-[0_0_30px_rgba(30,64,175,0.2)]' : 'border-slate-200 dark:border-slate-800/80'} rounded-[24px] p-6 lg:p-8 transition-all duration-300`}
+              className={`relative flex flex-col bg-white dark:bg-[#0b101d] border ${
+                isPack
+                  ? 'border-[#1e40af] shadow-[0_0_30px_rgba(30,64,175,0.2)]'
+                  : isPro
+                  ? 'border-[#6b21a8] shadow-[0_0_30px_rgba(107,33,168,0.2)]'
+                  : 'border-slate-200 dark:border-slate-800/80'
+              } rounded-[24px] p-6 lg:p-8 transition-all duration-300`}
             >
               {/* Badge */}
               {plan.badge && (
@@ -175,17 +190,17 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
               {/* Header */}
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className={`text-xs font-black tracking-widest uppercase mb-4 ${isPro ? 'text-[#60a5fa]' : plan.id === 'Enterprise' ? 'text-[#c084fc]' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <h3 className={`text-xs font-black tracking-widest uppercase mb-4 ${
+                    isPack ? 'text-[#60a5fa]' : isPro ? 'text-[#c084fc]' : 'text-slate-600 dark:text-slate-400'
+                  }`}>
                     {plan.name}
                   </h3>
                   <div className="flex items-end gap-1 mb-2">
                     <span className="text-4xl font-extrabold text-slate-900 dark:text-white leading-none">{plan.price}</span>
-                    {plan.period.split('\n')[0] && <span className="text-xs text-slate-500 dark:text-slate-500 font-medium mb-1">{plan.period.split('\n')[0]}</span>}
+                    {plan.period && <span className="text-xs text-slate-500 dark:text-slate-500 font-medium mb-1">{plan.period}</span>}
                   </div>
-                  {plan.period.split('\n')[1] ? (
-                    <div className="text-[11px] text-slate-500 dark:text-slate-500">{plan.period.split('\n')[1]}</div>
-                  ) : (
-                    <div className="text-[11px] text-slate-500 dark:text-slate-500">{plan.period}</div>
+                  {plan.periodSub && (
+                    <div className="text-[11px] text-slate-500 dark:text-slate-500">{plan.periodSub}</div>
                   )}
                 </div>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${plan.iconColor}`}>
@@ -203,7 +218,9 @@ export default function Plans({ currentPlan, setCurrentPlan, setCredits, userEma
                 {plan.features.map((f, i) => (
                   <li key={i} className="flex items-center gap-3 text-xs">
                     {f.active ? (
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${isPro ? 'bg-[#3b82f6] text-white' : plan.id === 'Enterprise' ? 'bg-[#8b5cf6] text-white' : 'bg-[#8b5cf6] text-white'}`}>
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${
+                        isPack ? 'bg-[#3b82f6] text-white' : isPro ? 'bg-[#8b5cf6] text-white' : 'bg-[#8b5cf6] text-white'
+                      }`}>
                         ✓
                       </div>
                     ) : (
