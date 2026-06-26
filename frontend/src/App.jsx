@@ -11,22 +11,21 @@ import AuthModal from './components/AuthModal'
 import ScriptGenerator from './components/ScriptGenerator'
 import StoryGenerator from './components/StoryGenerator'
 import Gallery from './components/Gallery'
- 
+
 
 const SIDEBAR_TABS_TOP = [
-  { id: 'generate',  label: 'Master Video', icon: '🎬' },
-  { id: 'shorts',    label: 'Viral Shorts', icon: '🔥' },
-  { id: 'story',     label: 'Auto Story',   icon: '📖' },
-  { id: 'script',    label: 'AI Prompt',    icon: '✨' },
-  { id: 'reels',     label: 'Insta Reels',  icon: '📱' },
-  { id: 'voice',     label: 'AI Voice',     icon: '🎙️' },
-  { id: 'image',     label: 'Image Gen',    icon: '🖼️' },
+  { id: 'generate', label: 'Master Video', icon: '🎬' },
+  { id: 'story', label: 'Auto Story', icon: '📖' },
+  { id: 'script', label: 'AI Prompt', icon: '✨' },
+  { id: 'reels', label: 'Insta Reels', icon: '📱' },
+  { id: 'voice', label: 'AI Voice', icon: '🎙️' },
+  { id: 'image', label: 'Image Gen', icon: '🖼️' },
 ]
 
 const SIDEBAR_TABS_BOTTOM = [
-  { id: 'gallery',   label: 'My Gallery',   icon: '📂' },
-  { id: 'analytics', label: 'Analytics',    icon: '📈' },
-  { id: 'plans',     label: 'Plans & Billing', icon: '💳' },
+  { id: 'gallery', label: 'My Gallery', icon: '📂' },
+  { id: 'analytics', label: 'Analytics', icon: '📈' },
+  { id: 'plans', label: 'Plans & Billing', icon: '💳' },
 ]
 
 export default function App() {
@@ -46,7 +45,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(() => !localStorage.getItem('veo_token'))
   const [user, setUser] = useState(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
   useEffect(() => {
     const token = localStorage.getItem('veo_token');
     if (token) {
@@ -105,21 +104,21 @@ export default function App() {
       setShowAuthModal(true);
       return false;
     }
-    
+
     if (isUnlimited) return true;
-    
+
     if (user.credits <= 0) {
       setTab('plans');
       return false;
     }
-    
+
     const newCredits = user.credits - 1;
     setUser({ ...user, credits: newCredits });
-    
+
     const token = localStorage.getItem('veo_token');
     axios.post(`${API_URL}/api/auth/use-credit`, {}, { headers: { Authorization: `Bearer ${token}` } })
       .catch(() => console.error("Failed to sync credit deduction"));
-      
+
     return true;
   };
 
@@ -142,11 +141,10 @@ export default function App() {
     return (
       <button
         key={t.id}
-        className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-          isActive 
-            ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 shadow-[inset_4px_0_0_#3b82f6]' 
+        className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
+            ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 shadow-[inset_4px_0_0_#3b82f6]'
             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent'
-        }`}
+          }`}
         onClick={() => { setTab(t.id); setIsMobileMenuOpen(false); }}
       >
         <span className={`text-xl ${isActive ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`}>{t.icon}</span>
@@ -157,7 +155,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-[#050a12] text-slate-900 dark:text-slate-200 overflow-hidden font-outfit selection:bg-blue-500/30 transition-colors duration-300">
-      
+
       {/* Mobile Header (visible only on small screens) */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-[#0a101d] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 z-50">
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-500 dark:text-slate-400">
@@ -168,18 +166,18 @@ export default function App() {
           <span className="font-bold text-lg text-slate-900 dark:text-white">Veo<span className="text-blue-500 dark:text-blue-400">Studio</span></span>
         </div>
         <div className="flex flex-col items-center gap-1">
-           <button 
-             onClick={() => setTab('plans')}
-             className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-500/30 text-[10px] font-bold"
-           >
-             <span className="text-blue-500">⚡</span> {creditsNum}
-           </button>
+          <button
+            onClick={() => setTab('plans')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-100 dark:border-blue-500/30 text-[10px] font-bold"
+          >
+            <span className="text-blue-500">⚡</span> {creditsNum}
+          </button>
         </div>
       </div>
 
       {/* Sidebar Navigation */}
       <aside className={`fixed md:static top-0 left-0 h-full w-[260px] bg-white dark:bg-[#0a101d] border-r border-slate-200 dark:border-slate-800/80 flex flex-col z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0 pt-16 md:pt-0' : '-translate-x-full md:translate-x-0 shadow-2xl md:shadow-none'}`}>
-        
+
         {/* Logo (Desktop) */}
         <div className="hidden md:flex items-center gap-3 px-6 h-20 flex-shrink-0 cursor-pointer" onClick={() => setTab('generate')}>
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
@@ -213,7 +211,7 @@ export default function App() {
             {!isUnlimited && (
               <div className="text-xs text-slate-500 mb-3">Resets on 1 July 2026</div>
             )}
-            <button 
+            <button
               onClick={() => setTab('plans')}
               className="w-full py-2 bg-blue-600 hover:bg-blue-700 dark:bg-gradient-to-r dark:from-blue-600 dark:to-indigo-600 text-white rounded-xl text-[13px] font-bold shadow-md shadow-blue-500/20 transition-all"
             >
@@ -236,7 +234,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 onClick={() => setShowAuthModal(true)}
                 className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
               >
@@ -249,7 +247,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 relative overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#050a12] pt-16 pb-20 md:pt-0 md:pb-0 transition-colors duration-300">
-        
+
         {/* Subtle Background Glows (Dark Mode Only) */}
         {theme === 'dark' && (
           <>
@@ -259,12 +257,9 @@ export default function App() {
         )}
 
         <div className="relative z-10 w-full h-full p-4 md:p-8 animate-[fadeSlide_0.3s_ease]">
-          
+
           <div className={tab === 'generate' ? 'block' : 'hidden'}>
             <Generate history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
-          </div>
-          <div className={tab === 'shorts' ? 'block' : 'hidden'}>
-            <ShortsGenerator history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
           </div>
           <div className={tab === 'script' ? 'block' : 'hidden'}>
             <ScriptGenerator credits={creditsNum} setCredits={handleUsageAccounting} />
@@ -288,7 +283,7 @@ export default function App() {
             <Analytics history={history} />
           </div>
           <div className={tab === 'plans' ? 'block' : 'hidden'}>
-            <Plans 
+            <Plans
               currentPlan={user?.plan || 'Free'}
               setCurrentPlan={(planId) => {
                 setUser(prev => ({
@@ -304,7 +299,7 @@ export default function App() {
                   credits: typeof updater === 'function' ? updater(prev?.credits || 0) : updater
                 }))
               }}
-              userEmail={user?.email} 
+              userEmail={user?.email}
             />
           </div>
         </div>
@@ -321,11 +316,10 @@ export default function App() {
         ].map(t => (
           <button
             key={t.id}
-            className={`flex flex-col items-center justify-center gap-1 min-w-[50px] transition-all ${
-              tab === t.id 
-                ? 'text-blue-600 dark:text-blue-400 font-bold' 
+            className={`flex flex-col items-center justify-center gap-1 min-w-[50px] transition-all ${tab === t.id
+                ? 'text-blue-600 dark:text-blue-400 font-bold'
                 : 'text-slate-500 dark:text-slate-400'
-            }`}
+              }`}
             onClick={() => setTab(t.id)}
           >
             <span className="text-[20px]">{t.icon}</span>
@@ -336,9 +330,9 @@ export default function App() {
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal 
-          onAuthSuccess={handleAuthSuccess} 
-          onClose={user ? () => setShowAuthModal(false) : undefined} 
+        <AuthModal
+          onAuthSuccess={handleAuthSuccess}
+          onClose={user ? () => setShowAuthModal(false) : undefined}
         />
       )}
     </div>
