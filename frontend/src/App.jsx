@@ -11,7 +11,7 @@ import AuthModal from './components/AuthModal'
 import ScriptGenerator from './components/ScriptGenerator'
 import StoryGenerator from './components/StoryGenerator'
 import Gallery from './components/Gallery'
-import ShortsGenerator from './components/ShortsGen'
+ 
 
 const SIDEBAR_TABS_TOP = [
   { id: 'generate',  label: 'Master Video', icon: '🎬' },
