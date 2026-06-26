@@ -11,9 +11,11 @@ import AuthModal from './components/AuthModal'
 import ScriptGenerator from './components/ScriptGenerator'
 import StoryGenerator from './components/StoryGenerator'
 import Gallery from './components/Gallery'
+import ShortsGenerator from './components/ShortsGen'
 
 const SIDEBAR_TABS_TOP = [
   { id: 'generate', label: 'Master Video', icon: '🎬' },
+  { id: 'shorts', label: 'Viral Shorts', icon: '🔥' },
   { id: 'story', label: 'Auto Story', icon: '📖' },
   { id: 'script', label: 'AI Prompt', icon: '✨' },
   { id: 'reels', label: 'Insta Reels', icon: '📱' },
@@ -259,6 +261,9 @@ export default function App() {
 
           <div className={tab === 'generate' ? 'block' : 'hidden'}>
             <Generate history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
+          </div>
+          <div className={tab === 'shorts' ? 'block' : 'hidden'}>
+            <ShortsGenerator history={history} setHistory={setHistory} credits={creditsNum} setCredits={handleUsageAccounting} />
           </div>
           <div className={tab === 'script' ? 'block' : 'hidden'}>
             <ScriptGenerator credits={creditsNum} setCredits={handleUsageAccounting} />
