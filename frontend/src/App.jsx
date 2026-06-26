@@ -12,7 +12,6 @@ import ScriptGenerator from './components/ScriptGenerator'
 import StoryGenerator from './components/StoryGenerator'
 import Gallery from './components/Gallery'
 
-
 const SIDEBAR_TABS_TOP = [
   { id: 'generate', label: 'Master Video', icon: '🎬' },
   { id: 'story', label: 'Auto Story', icon: '📖' },
