@@ -185,6 +185,9 @@ router.post('/result', resultLimiter, resultValidation, async (req, res) => {
 // ─── POST /api/video/merge ──────────────────────────────────────────────────
 router.post('/merge', authMiddleware, requireCredits(1), mergeController.mergeVideos)
 
+// ─── GET /api/video/merge-status/:mergeId ─────────────────────────────────
+router.get('/merge-status/:mergeId', mergeController.getMergeStatus)
+
 // ─── GET /api/video/download-merged/:mergeId ──────────────────────────────
 router.get('/download-merged/:mergeId', mergeController.serveMergedVideo)
 
