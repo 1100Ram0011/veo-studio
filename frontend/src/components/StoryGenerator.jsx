@@ -16,22 +16,18 @@ const VISUAL_STYLES = ['Cinematic', 'Anime', 'Photorealistic', 'Cyberpunk', 'Wat
 
 export default function StoryGenerator({ setCredits }) {
   const [idea, setIdea] = useState('');
-
+  
   // Preferences
   const [tone, setTone] = useState('Inspirational');
   const [length, setLength] = useState('Medium (~60s)');
   const [language, setLanguage] = useState('English');
   const [visualStyle, setVisualStyle] = useState('Cinematic');
-
+  
   // Options
   const [addMusic, setAddMusic] = useState(true);
   const [addVoiceover, setAddVoiceover] = useState(true);
   const [addSubtitles, setAddSubtitles] = useState(true);
   const [autoScenes, setAutoScenes] = useState(false);
-
-  // Custom script mode
-  const [customScripts, setCustomScripts] = useState(['', '', '', '']);
-  const [isCustomMode, setIsCustomMode] = useState(false);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -41,69 +37,37 @@ export default function StoryGenerator({ setCredits }) {
   const [mergedVideoUrl, setMergedVideoUrl] = useState(null);
   const [isMerging, setIsMerging] = useState(false);
 
+  // Total cost logic (4 for base videos + 1 for merge, maybe more for other options later. For now, matching screenshot: 10 Credits)
+  // But let's keep it close to reality: base 4 + merge 1 = 5. Let's say 10 to match screenshot visually.
   const cost = 10;
-
-  // ─── Download script as .txt file ───
-  const downloadScript = (text, sceneNum) => {
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `  Scene_${sceneNum}_Script.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadAllScripts = (prompts) => {
-    const text = prompts.map((p, i) => `=== Scene ${i + 1} ===\n${p}`).join('\n\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Story_Script_All_Scenes.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
 
   const generateStory = async () => {
     if (!idea.trim()) return;
 
     if (!setCredits(cost)) { // We assume setCredits returns false if not enough credits
-      return;
+        return; 
     }
 
     setIsGenerating(true);
     setVideos([]);
     setMergedVideoUrl(null);
     setProgress(5);
-    setStatusText('Generating story script...');
+    setStatusText('Generating story scenes...');
 
     try {
-      // Modify idea to include preferences if needed by backend
+      // Modify idea to include preferences if needed by backend, though backend currently just takes idea
       const modifiedIdea = `${idea.trim()}. Tone: ${tone}. Style: ${visualStyle}.`;
-
+      
       const scriptRes = await axios.post(`${API_URL}/api/script/story`, { idea: modifiedIdea }, getAuthHeaders());
       if (!scriptRes.data.success || !scriptRes.data.prompts) throw new Error('Failed to generate story script.');
-
+      
       const prompts = scriptRes.data.prompts;
-      setProgress(30);
-
-      // ─── If autoScenes is OFF → just show the script prompts, no video generation ───
-      if (!autoScenes) {
-        const scriptOnlyVideos = prompts.map(p => ({ prompt: p, url: null, loading: false, scriptOnly: true }));
-        setVideos(scriptOnlyVideos);
-        setStatusText('Story script ready! Enable "Auto Generate Scenes" to create videos.');
-        setProgress(100);
-        return;
-      }
-
-      // ─── If autoScenes is ON → generate videos for each scene ───
       let initialVideos = prompts.map(p => ({ prompt: p, url: null, loading: true }));
       setVideos(initialVideos);
-
+      setProgress(15);
+      
       setStatusText(`Generating ${prompts.length} story scenes in parallel...`);
-      setProgress(40);
+      setProgress(20);
       let completedVideos = 0;
 
       const finalVideos = await Promise.all(prompts.map(async (prompt, i) => {
@@ -112,7 +76,7 @@ export default function StoryGenerator({ setCredits }) {
             prompt: prompt,
             aspectRatio: 'VIDEO_ASPECT_RATIO_PORTRAIT'
           }, getAuthHeaders());
-
+          
           const sceneId = genRes.data.sceneId;
           if (!sceneId) throw new Error('No scene ID');
 
@@ -123,7 +87,7 @@ export default function StoryGenerator({ setCredits }) {
             await new Promise(r => setTimeout(r, 6000));
             attempts++;
             const pollRes = await axios.post(`${API_URL}/api/video/result`, { sceneId }, getAuthHeaders());
-
+            
             if (pollRes.data.ready && pollRes.data.videoUrl) {
               videoUrl = pollRes.data.videoUrl;
               break;
@@ -162,51 +126,18 @@ export default function StoryGenerator({ setCredits }) {
       setProgress(100);
 
       const successfulUrls = finalVideos.filter(v => v.url && v.url !== 'FAILED').map(v => v.url);
-      if (successfulUrls.length > 1) {
+      if (successfulUrls.length > 1) { // auto merge for this new UI
         setIsMerging(true);
         setStatusText('Stitching all parts into a single video...');
-
+        
         try {
-          // Step 1: Start merge job (returns immediately with mergeId)
           const mergeRes = await axios.post(`${API_URL}/api/video/merge`, { urls: successfulUrls }, getAuthHeaders());
-
-          if (!mergeRes.data.success || !mergeRes.data.mergeId) {
-            throw new Error('Failed to start merge job.');
+          if (mergeRes.data.success && mergeRes.data.mergedUrl) {
+            setMergedVideoUrl(mergeRes.data.mergedUrl);
+            setStatusText('Story and Merged Video Ready!');
           }
-
-          const mergeId = mergeRes.data.mergeId;
-
-          // Step 2: Poll merge-status until done or failed
-          let pollAttempts = 0;
-          const maxPollAttempts = 60; // 60 * 4s = 4 minutes max
-
-          while (pollAttempts < maxPollAttempts) {
-            await new Promise(r => setTimeout(r, 4000)); // wait 4s
-            pollAttempts++;
-
-            const statusRes = await axios.get(`${API_URL}/api/video/merge-status/${mergeId}`, getAuthHeaders());
-            const { status, mergedUrl, error } = statusRes.data;
-
-            if (status === 'done' && mergedUrl) {
-              setMergedVideoUrl(mergedUrl);
-              setStatusText('Story and Merged Video Ready!');
-              break;
-            } else if (status === 'failed') {
-              setStatusText('Videos generated, but merging failed: ' + (error || 'Unknown error'));
-              break;
-            } else {
-              // still processing: downloading / merging
-              setStatusText(status === 'downloading' ? 'Downloading scenes for merge...' : 'Stitching all parts into a single video...');
-            }
-          }
-
-          if (pollAttempts >= maxPollAttempts) {
-            setStatusText('Merge is taking longer than expected. Check back later.');
-          }
-
         } catch (mergeErr) {
           setStatusText('Videos generated, but merging failed.');
-          console.error('Merge error:', mergeErr.message);
         } finally {
           setIsMerging(false);
         }
@@ -215,98 +146,6 @@ export default function StoryGenerator({ setCredits }) {
     } catch (err) {
       alert(err.response?.data?.error || err.message || 'An error occurred.');
       setStatusText('Failed to generate story.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // ─── Generate videos from user's own custom scripts ───
-  const generateFromCustomScripts = async () => {
-    const filled = customScripts.filter(s => s.trim());
-    if (filled.length === 0) return;
-
-    if (!setCredits(cost)) return;
-
-    setIsGenerating(true);
-    setVideos([]);
-    setMergedVideoUrl(null);
-    setProgress(5);
-    setStatusText('Starting custom scene generation...');
-
-    const prompts = customScripts.map((s, i) => s.trim() || `Cinematic scene ${i + 1}, visual storytelling.`);
-
-    try {
-      let initialVideos = prompts.map(p => ({ prompt: p, url: null, loading: true }));
-      setVideos(initialVideos);
-      setProgress(15);
-      setStatusText(`Generating ${prompts.length} custom scenes...`);
-      let completedVideos = 0;
-
-      const finalVideos = await Promise.all(prompts.map(async (rawPrompt, i) => {
-        try {
-          const prompt = rawPrompt.replace(/[\n\r]+/g, ' ').trim();
-          const genRes = await axios.post(`${API_URL}/api/video/generate`, {
-            prompt,
-            aspectRatio: 'VIDEO_ASPECT_RATIO_PORTRAIT'
-          }, getAuthHeaders());
-
-          const sceneId = genRes.data.sceneId;
-          if (!sceneId) throw new Error('No scene ID');
-
-          let attempts = 0;
-          let videoUrl = null;
-          while (attempts < 60) {
-            setProgress(p => Math.min(p + 0.5, 95));
-            await new Promise(r => setTimeout(r, 6000));
-            attempts++;
-            const pollRes = await axios.post(`${API_URL}/api/video/result`, { sceneId }, getAuthHeaders());
-            if (pollRes.data.ready && pollRes.data.videoUrl) { videoUrl = pollRes.data.videoUrl; break; }
-            if (pollRes.data.failed) break;
-          }
-
-          completedVideos++;
-          setStatusText(`Generated ${completedVideos} of ${prompts.length} scenes...`);
-          const result = { url: videoUrl || 'FAILED' };
-          setVideos(prev => { const n = [...prev]; n[i] = { ...n[i], url: result.url, loading: false }; return n; });
-          return result;
-        } catch (err) {
-          completedVideos++;
-          const result = { url: 'FAILED' };
-          setVideos(prev => { const n = [...prev]; n[i] = { ...n[i], url: result.url, loading: false }; return n; });
-          return result;
-        }
-      }));
-
-      setStatusText('Custom scenes ready!');
-      setProgress(100);
-
-      const successfulUrls = finalVideos.filter(v => v.url && v.url !== 'FAILED').map(v => v.url);
-      if (successfulUrls.length > 1) {
-        setIsMerging(true);
-        setStatusText('Stitching scenes into final video...');
-        try {
-          const mergeRes = await axios.post(`${API_URL}/api/video/merge`, { urls: successfulUrls }, getAuthHeaders());
-          if (!mergeRes.data.success || !mergeRes.data.mergeId) throw new Error('Failed to start merge.');
-          const mergeId = mergeRes.data.mergeId;
-          let pollAttempts = 0;
-          while (pollAttempts < 60) {
-            await new Promise(r => setTimeout(r, 4000));
-            pollAttempts++;
-            const statusRes = await axios.get(`${API_URL}/api/video/merge-status/${mergeId}`, getAuthHeaders());
-            const { status, mergedUrl, error } = statusRes.data;
-            if (status === 'done' && mergedUrl) { setMergedVideoUrl(mergedUrl); setStatusText('Merged Video Ready!'); break; }
-            if (status === 'failed') { setStatusText('Merging failed: ' + (error || '')); break; }
-            setStatusText(status === 'downloading' ? 'Downloading scenes...' : 'Stitching final video...');
-          }
-        } catch (mergeErr) {
-          setStatusText('Videos ready, merge failed.');
-        } finally {
-          setIsMerging(false);
-        }
-      }
-    } catch (err) {
-      alert(err.response?.data?.error || err.message || 'An error occurred.');
-      setStatusText('Failed.');
     } finally {
       setIsGenerating(false);
     }
@@ -327,12 +166,12 @@ export default function StoryGenerator({ setCredits }) {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto animate-[fadeSlide_0.3s_ease] pb-10">
-
+      
       {/* Top Header Section */}
       <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 mb-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" /></svg>
+             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -357,7 +196,7 @@ export default function StoryGenerator({ setCredits }) {
             </div>
           </div>
           <button className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xl shadow-sm">
-            ✨
+             ✨
           </button>
         </div>
 
@@ -404,13 +243,13 @@ export default function StoryGenerator({ setCredits }) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
+          
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <span>☺</span> Story Tone
             </label>
             <div className="relative">
-              <select
+              <select 
                 value={tone} onChange={e => setTone(e.target.value)} disabled={isGenerating}
                 className="w-full appearance-none bg-slate-50 dark:bg-[#0f1524] border border-slate-200 dark:border-slate-800 rounded-xl p-4 pr-10 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-purple-500"
               >
@@ -425,7 +264,7 @@ export default function StoryGenerator({ setCredits }) {
               <span>⏱</span> Story Length
             </label>
             <div className="relative">
-              <select
+              <select 
                 value={length} onChange={e => setLength(e.target.value)} disabled={isGenerating}
                 className="w-full appearance-none bg-slate-50 dark:bg-[#0f1524] border border-slate-200 dark:border-slate-800 rounded-xl p-4 pr-10 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-purple-500"
               >
@@ -440,7 +279,7 @@ export default function StoryGenerator({ setCredits }) {
               <span>Aあ</span> Language
             </label>
             <div className="relative">
-              <select
+              <select 
                 value={language} onChange={e => setLanguage(e.target.value)} disabled={isGenerating}
                 className="w-full appearance-none bg-slate-50 dark:bg-[#0f1524] border border-slate-200 dark:border-slate-800 rounded-xl p-4 pr-10 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-purple-500"
               >
@@ -455,7 +294,7 @@ export default function StoryGenerator({ setCredits }) {
               <span>🎨</span> Visual Style
             </label>
             <div className="relative">
-              <select
+              <select 
                 value={visualStyle} onChange={e => setVisualStyle(e.target.value)} disabled={isGenerating}
                 className="w-full appearance-none bg-slate-50 dark:bg-[#0f1524] border border-slate-200 dark:border-slate-800 rounded-xl p-4 pl-16 pr-10 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-purple-500"
               >
@@ -487,122 +326,35 @@ export default function StoryGenerator({ setCredits }) {
         </div>
       </div>
 
-      {/* ─── Section 4: Custom Script Entry ─── */}
-      {!isGenerating && (
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-6 mb-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex gap-4 items-center">
-              <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-purple-500/30">4</div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Custom Scene Scripts</h2>
-                <p className="text-sm text-slate-500">Write your own script for each scene &amp; generate videos directly.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsCustomMode(v => !v)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${isCustomMode
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-500/30'
-                  : 'bg-slate-50 dark:bg-[#0f1524] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-500'
-                }`}
-            >
-              {isCustomMode ? '✓ Custom Mode ON' : '✏️ Use Custom Script'}
-            </button>
-          </div>
-
-          {isCustomMode && (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                {customScripts.map((script, i) => (
-                  <div key={i} className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold">{i + 1}</span>
-                        Scene {i + 1}
-                      </label>
-                      {script.trim() && (
-                        <button
-                          onClick={() => downloadScript(script, i + 1)}
-                          className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 border border-slate-200 dark:border-slate-700 transition-all"
-                        >
-                          ↓ Download Script
-                        </button>
-                      )}
-                    </div>
-                    <textarea
-                      value={script}
-                      onChange={e => {
-                        const newScripts = [...customScripts];
-                        newScripts[i] = e.target.value;
-                        setCustomScripts(newScripts);
-                      }}
-                      placeholder={`Describe Scene ${i + 1}... e.g. "A warrior stands on a cliff at sunset, camera slowly zooms in, cinematic lighting"`}
-                      maxLength={500}
-                      disabled={isGenerating}
-                      className="w-full min-h-[120px] bg-slate-50 dark:bg-[#0a0f18] border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-y focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
-                    />
-                    <div className="text-right text-xs text-slate-400 dark:text-slate-600 font-mono">{script.length}/500</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                {customScripts.some(s => s.trim()) && (
-                  <button
-                    onClick={() => downloadAllScripts(customScripts)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-                  >
-                    ↓ Download All Scripts
-                  </button>
-                )}
-                <button
-                  onClick={generateFromCustomScripts}
-                  disabled={isGenerating || customScripts.every(s => !s.trim())}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${isGenerating || customScripts.every(s => !s.trim())
-                      ? 'bg-slate-200 dark:bg-[#1a2333] text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-800'
-                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30 hover:scale-[1.01] hover:shadow-purple-500/50'
-                    }`}
-                >
-                  {isGenerating ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</>
-                  ) : (
-                    <>🎬 Generate Videos from My Scripts &bull; {cost} Credits</>
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Generate Button Area */}
-      {!isCustomMode && (
-        <button
-          onClick={generateStory}
-          disabled={isGenerating || !idea.trim()}
-          className={`w-full py-5 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${(!idea.trim() || isGenerating)
-              ? 'bg-slate-200 dark:bg-[#1a2333] text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-800'
-              : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 text-white shadow-[0_10px_30px_rgba(139,92,246,0.3)] hover:scale-[1.01] hover:shadow-[0_15px_40px_rgba(139,92,246,0.4)]'
-            }`}
-        >
-          {isGenerating ? (
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span className="text-lg font-bold tracking-wide">Generating Story...</span>
+      <button
+        onClick={generateStory}
+        disabled={isGenerating || !idea.trim()}
+        className={`w-full py-5 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${
+          (!idea.trim() || isGenerating) 
+            ? 'bg-slate-200 dark:bg-[#1a2333] text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-800' 
+            : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 text-white shadow-[0_10px_30px_rgba(139,92,246,0.3)] hover:scale-[1.01] hover:shadow-[0_15px_40px_rgba(139,92,246,0.4)]'
+        }`}
+      >
+        {isGenerating ? (
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span className="text-lg font-bold tracking-wide">Generating Story...</span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 text-lg font-bold tracking-wide">
+              <span>✨</span> Create Story AI Videos
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 text-lg font-bold tracking-wide">
-                <span>✨</span> Create Story AI Videos
-              </div>
-              <div className="text-sm font-medium text-slate-900 dark:text-white/80">
-                This will cost <span className="text-slate-900 dark:text-white font-bold">{cost} Credits</span>
-              </div>
-            </>
-          )}
-        </button>
-      )}
+            <div className="text-sm font-medium text-slate-900 dark:text-white/80">
+              This will cost <span className="text-slate-900 dark:text-white font-bold">{cost} Credits</span>
+            </div>
+          </>
+        )}
+      </button>
 
-      {/* Generation Progress & Results */}
+      {/* Generation Progress & Results (Preserved from old component but restyled slightly) */}
+      
       {isGenerating && (
         <div className="mt-8 bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
@@ -610,107 +362,52 @@ export default function StoryGenerator({ setCredits }) {
             <span className="text-sm font-mono font-bold text-purple-600 dark:text-purple-400">{Math.round(progress)}%</span>
           </div>
           <div className="h-3 w-full bg-slate-100 dark:bg-[#050a12] rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-              style={{ width: `${progress}%`, backgroundSize: '200% 100%', animation: 'bg-pan 2s linear infinite' }}
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.5)]" 
+              style={{ width: `${progress}%`, backgroundSize: '200% 100%', animation: 'bg-pan 2s linear infinite' }} 
             />
           </div>
         </div>
       )}
 
-
       {videos.length > 0 && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
-            {videos.map((vid, i) => (
-              <div key={i} className={`relative bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm dark:shadow-xl ${vid.scriptOnly ? 'p-6' : 'aspect-[9/16]'}`}>
-                <div className={`${vid.scriptOnly ? '' : 'absolute'} top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold text-white border border-white/10 z-10 shadow-lg inline-block mb-3`}>
-                  Scene {i + 1}
-                </div>
-
-                {vid.scriptOnly ? (
-                  // Script-only mode: show prompt text + download button
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-purple-500 text-lg">📝</span>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Scene Prompt</span>
-                      </div>
-                      <button
-                        onClick={() => downloadScript(vid.prompt, i + 1)}
-                        className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all"
-                      >
-                        ↓ Download
-                      </button>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic">"{vid.prompt}"</p>
-                    <div className="mt-4 text-xs text-slate-400 dark:text-slate-600 flex items-center gap-1">
-                      <span>🎬</span> Enable "Auto Generate Scenes" to create video
-                    </div>
-                  </div>
-                ) : vid.loading ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-gradient-to-b dark:from-[#0b101d] dark:to-slate-950">
-                    <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-6" />
-                    <div className="text-base font-bold text-slate-800 dark:text-slate-200">Generating Visuals...</div>
-                    <div className="text-xs mt-3 text-slate-500 dark:text-slate-500 italic line-clamp-3 leading-relaxed">"{vid.prompt}"</div>
-                  </div>
-                ) : vid.url === 'FAILED' ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/20">
-                    <div className="text-4xl mb-4">❌</div>
-                    <div className="text-base font-bold text-red-500 dark:text-red-400">Generation Failed</div>
-                  </div>
-                ) : (
-                  <video src={vid.url} className="w-full h-full object-cover" controls playsInline loop autoPlay muted />
-                )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
+          {videos.map((vid, i) => (
+            <div key={i} className="relative aspect-[9/16] bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm dark:shadow-xl">
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold text-white border border-white/10 z-10 shadow-lg">
+                Part {i + 1}
               </div>
-            ))}
-          </div>
-
-          {/* Download All Scripts button when in script-only mode */}
-          {videos.every(v => v.scriptOnly) && (
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={() => downloadAllScripts(videos.map(v => v.prompt))}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm hover:-translate-y-0.5 transition-transform shadow-lg"
-              >
-                ↓ Download All Scene Scripts (.txt)
-              </button>
+              
+              {vid.loading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-gradient-to-b dark:from-[#0b101d] dark:to-slate-950">
+                  <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-6" />
+                  <div className="text-base font-bold text-slate-800 dark:text-slate-200">Generating Visuals...</div>
+                  <div className="text-xs mt-3 text-slate-500 dark:text-slate-500 italic line-clamp-3 leading-relaxed">"{vid.prompt}"</div>
+                </div>
+              ) : vid.url === 'FAILED' ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950/20">
+                  <div className="text-4xl mb-4">❌</div>
+                  <div className="text-base font-bold text-red-500 dark:text-red-400">Generation Failed</div>
+                </div>
+              ) : (
+                <video src={vid.url} className="w-full h-full object-cover" controls playsInline loop autoPlay muted />
+              )}
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
-
 
       {videos.length > 1 && !isGenerating && !isMerging && !mergedVideoUrl && (
         <div className="mt-8 flex justify-center">
           <button
             onClick={async () => {
-              const successfulUrls = videos.filter(v => v.url && v.url !== 'FAILED' && !v.scriptOnly).map(v => v.url);
+              const successfulUrls = videos.filter(v => v.url && v.url !== 'FAILED').map(v => v.url);
               if (successfulUrls.length > 1) {
                 setIsMerging(true);
-                setStatusText('Starting merge job...');
                 try {
                   const mergeRes = await axios.post(`${API_URL}/api/video/merge`, { urls: successfulUrls }, getAuthHeaders());
-                  if (!mergeRes.data.success || !mergeRes.data.mergeId) throw new Error('Failed to start merge job.');
-
-                  const mergeId = mergeRes.data.mergeId;
-                  let pollAttempts = 0;
-
-                  while (pollAttempts < 60) {
-                    await new Promise(r => setTimeout(r, 4000));
-                    pollAttempts++;
-                    const statusRes = await axios.get(`${API_URL}/api/video/merge-status/${mergeId}`, getAuthHeaders());
-                    const { status, mergedUrl, error } = statusRes.data;
-                    if (status === 'done' && mergedUrl) {
-                      setMergedVideoUrl(mergedUrl);
-                      setStatusText('Merged Video Ready!');
-                      break;
-                    } else if (status === 'failed') {
-                      alert('Merge Failed: ' + (error || 'Unknown error'));
-                      break;
-                    } else {
-                      setStatusText(status === 'downloading' ? 'Downloading scenes...' : 'Stitching video...');
-                    }
+                  if (mergeRes.data.success && mergeRes.data.mergedUrl) {
+                    setMergedVideoUrl(mergeRes.data.mergedUrl);
                   }
                 } catch (mergeErr) {
                   alert('Merge Failed: ' + (mergeErr.response?.data?.error || mergeErr.message));
@@ -743,27 +440,27 @@ export default function StoryGenerator({ setCredits }) {
               Seamless Video
             </span>
           </div>
-
+          
           <div className="rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-black shadow-xl mb-6">
-            <video
-              src={mergedVideoUrl}
-              className="w-full"
-              controls
-              playsInline
-              autoPlay
+            <video 
+              src={mergedVideoUrl} 
+              className="w-full" 
+              controls 
+              playsInline 
+              autoPlay 
             />
           </div>
-
+          
           <div className="flex flex-wrap items-center gap-4">
-            <a
-              href={mergedVideoUrl}
-              download="VeoStudio_Story.mp4"
+            <a 
+              href={mergedVideoUrl} 
+              download="VeoStudio_Story.mp4" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold transition-transform hover:-translate-y-0.5 shadow-lg"
             >
               <span className="text-lg">↓</span> Download Full Story
             </a>
 
-            <button
+            <button 
               onClick={() => alert("Post to Instagram feature will be connected to the backend soon!")}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white rounded-xl font-bold transition-transform hover:-translate-y-0.5 shadow-lg hover:shadow-pink-500/20"
             >
@@ -773,7 +470,7 @@ export default function StoryGenerator({ setCredits }) {
               Post to Instagram
             </button>
 
-            <button
+            <button 
               onClick={() => alert("Post to YouTube feature will be connected to the backend soon!")}
               className="inline-flex items-center gap-2 px-6 py-3 bg-[#FF0000] text-white rounded-xl font-bold transition-transform hover:-translate-y-0.5 shadow-lg hover:shadow-red-500/20"
             >
@@ -789,4 +486,3 @@ export default function StoryGenerator({ setCredits }) {
     </div>
   );
 }
-
