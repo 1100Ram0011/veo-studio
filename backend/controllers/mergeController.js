@@ -16,16 +16,12 @@ if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
-// ─── In-memory job store (resets on server restart, good enough for temp use) ───
-const mergeJobs = {};
-
 const downloadVideo = async (url, outputPath) => {
   const writer = fs.createWriteStream(outputPath);
   const response = await axios({
     url,
     method: 'GET',
     responseType: 'stream',
-    timeout: 30000,
   });
 
   response.data.pipe(writer);
@@ -36,31 +32,32 @@ const downloadVideo = async (url, outputPath) => {
   });
 };
 
-// ─── Background merge worker ───
-async function runMergeJob(mergeId, urls) {
+exports.mergeVideos = async (req, res) => {
+  const { urls } = req.body;
+
+  if (!urls || !Array.isArray(urls) || urls.length === 0) {
+    return res.status(400).json({ error: 'Please provide an array of video URLs to merge.' });
+  }
+
+  const mergeId = 'merged_' + Date.now();
   const filePaths = [];
   const outputFilePath = path.join(TEMP_DIR, `${mergeId}.mp4`);
 
-  try {
-    mergeJobs[mergeId].status = 'downloading';
-    console.log(`🎬 Merging ${urls.length} videos (job: ${mergeId})...`);
+  console.log(`🎬 Merging ${urls.length} videos...`);
 
-    // 1. Download all videos
+  try {
+    // 1. Download all videos locally
     for (let i = 0; i < urls.length; i++) {
       const localPath = path.join(TEMP_DIR, `${mergeId}_part${i}.mp4`);
       await downloadVideo(urls[i], localPath);
       filePaths.push(localPath);
-      mergeJobs[mergeId].progress = Math.round(((i + 1) / urls.length) * 40);
-      console.log(`Downloaded part ${i + 1}/${urls.length}`);
+      console.log(`Downloaded part ${i+1}`);
     }
 
-    mergeJobs[mergeId].status = 'merging';
-    mergeJobs[mergeId].progress = 50;
-
-    // 2. Merge with ffmpeg
+    // 2. Merge them using fluent-ffmpeg
     await new Promise((resolve, reject) => {
       const command = ffmpeg();
-
+      
       filePaths.forEach((file) => {
         command.input(file);
       });
@@ -68,6 +65,7 @@ async function runMergeJob(mergeId, urls) {
       command
         .on('error', (err, stdout, stderr) => {
           console.error('ffmpeg error:', err.message);
+          console.error('ffmpeg stderr:', stderr);
           reject(new Error(err.message + ' | ' + stderr));
         })
         .on('end', () => {
@@ -77,78 +75,40 @@ async function runMergeJob(mergeId, urls) {
         .mergeToFile(outputFilePath, TEMP_DIR);
     });
 
-    console.log(`✅ Merged video ready: ${outputFilePath}`);
+    console.log(`✅ Merged video created at ${outputFilePath}`);
 
+    // Since we don't have AWS S3, we will serve this file directly through a static route or proxy.
+    // Wait! The /temp folder is not exposed. Let's move it to /public or save it to DB.
+    // We already have a Media database, but the Media database expects an `originalUrl`.
+    // Let's create an endpoint in video.js to serve files from the temp folder directly for simplicity,
+    // or just upload it somewhere? No, just serve from the backend statically.
+    
+    // Return the URL for the merged video
     const baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://veo-studio-jk43.onrender.com' : 'http://localhost:5000');
     const finalUrl = `${baseUrl}/api/video/download-merged/${mergeId}`;
 
-    mergeJobs[mergeId].status = 'done';
-    mergeJobs[mergeId].progress = 100;
-    mergeJobs[mergeId].mergedUrl = finalUrl;
+    return res.json({
+      success: true,
+      mergedUrl: finalUrl
+    });
 
   } catch (error) {
-    console.error('❌ Merge job error:', error.message);
-    mergeJobs[mergeId].status = 'failed';
-    mergeJobs[mergeId].error = error.message;
+    console.error('❌ Merge error:', error);
+    return res.status(500).json({ error: 'Merge failed: ' + error.message });
   } finally {
-    // Clean up part files
+    // Clean up the individual chunks to save space
     filePaths.forEach((file) => {
-      if (fs.existsSync(file)) fs.unlinkSync(file);
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
     });
-    // Auto-cleanup merged file after 30 minutes
-    setTimeout(() => {
-      if (fs.existsSync(outputFilePath)) fs.unlinkSync(outputFilePath);
-      delete mergeJobs[mergeId];
-    }, 30 * 60 * 1000);
   }
-}
-
-// ─── POST /api/video/merge → starts background job, returns jobId immediately ───
-exports.mergeVideos = async (req, res) => {
-  const { urls } = req.body;
-
-  if (!urls || !Array.isArray(urls) || urls.length === 0) {
-    return res.status(400).json({ error: 'Please provide an array of video URLs to merge.' });
-  }
-
-  const mergeId = 'merged_' + Date.now();
-
-  // Register job
-  mergeJobs[mergeId] = { status: 'queued', progress: 0, mergedUrl: null, error: null };
-
-  // Start background (don't await)
-  runMergeJob(mergeId, urls);
-
-  // Respond immediately with jobId — no timeout risk!
-  return res.json({
-    success: true,
-    mergeId,
-    message: 'Merge started in background. Poll /api/video/merge-status/:mergeId for result.',
-  });
-};
-
-// ─── GET /api/video/merge-status/:mergeId → poll for job progress ───
-exports.getMergeStatus = (req, res) => {
-  const { mergeId } = req.params;
-  const job = mergeJobs[mergeId];
-
-  if (!job) {
-    return res.status(404).json({ error: 'Merge job not found or expired.' });
-  }
-
-  return res.json({
-    success: true,
-    status: job.status,       // 'queued' | 'downloading' | 'merging' | 'done' | 'failed'
-    progress: job.progress,
-    mergedUrl: job.mergedUrl, // available when status === 'done'
-    error: job.error,         // available when status === 'failed'
-  });
 };
 
 exports.serveMergedVideo = (req, res) => {
   const { mergeId } = req.params;
   const filePath = path.join(TEMP_DIR, `${mergeId}.mp4`);
-
+  
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
